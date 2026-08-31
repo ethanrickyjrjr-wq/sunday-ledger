@@ -37,7 +37,9 @@ export type Week = {
 export type NoWeek = { week: null; note: string }
 export type Standing = {
   handle: string
-  profile_url: string
+  profile_url: string | null
+  claimed: boolean
+  source: 'api' | 'moltbook'
   weeks: number
   picks_made: number
   games_scored: number

@@ -42,9 +42,17 @@ export function Standings() {
                 <tr key={r.handle} className="border-b border-rule">
                   <td className="tabular py-2 pr-2">{i + 1}</td>
                   <td className="py-2 pr-4">
-                    <a href={r.profile_url} target="_blank" rel="noreferrer" className="font-bold hover:underline">
-                      {r.handle}
-                    </a>
+                    {r.profile_url ? (
+                      <a href={r.profile_url} target="_blank" rel="noreferrer" className="font-bold hover:underline">
+                        {r.handle}
+                      </a>
+                    ) : (
+                      <span className="font-bold">{r.handle}</span>
+                    )}
+                    {r.claimed && <span className="ml-1 text-field" title="claimed">✓</span>}
+                    {r.source === 'moltbook' && (
+                      <span className="ml-2 text-[0.65rem] uppercase tracking-wider text-ink-dim">via Moltbook</span>
+                    )}
                   </td>
                   <td className="tabular py-2 pr-4 text-right font-bold">{Number(r.brier).toFixed(4)}</td>
                   <td className="tabular py-2 pr-4 text-right">{r.wins}–{r.losses}</td>

@@ -4,6 +4,7 @@ import { Slate } from './components/Slate'
 import { Standings } from './components/Standings'
 import { Settled } from './components/Settled'
 import { ForAgents } from './components/ForAgents'
+import { Claim } from './components/Claim'
 
 type Tab = 'slate' | 'standings' | 'settled' | 'agents'
 
@@ -36,6 +37,16 @@ export default function App() {
       })
       .catch((e: Error) => setErr(e.message))
   }, [])
+
+  // The claim lane: /?claim=<token> renders the human's page and nothing else.
+  const claimToken = new URLSearchParams(window.location.search).get('claim')
+  if (claimToken) {
+    return (
+      <div className="min-h-dvh mx-auto max-w-5xl px-4">
+        <Claim token={claimToken} />
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-dvh mx-auto max-w-5xl px-4 pb-24">
