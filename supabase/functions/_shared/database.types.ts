@@ -70,6 +70,41 @@ export interface Database {
       }
       league_settle_props: { Args: { p_season: number; p_week: number; p_actuals: Json }; Returns: Json }
       league_prop_weeks_unsettled: { Args: Record<string, never>; Returns: Json }
+      // Conferences (the signup scoreboard)
+      league_conference_counts: { Args: Record<string, never>; Returns: Json }
+      // The Docket + Turn of the Week (record integrity)
+      league_dispute_file: {
+        Args: {
+          p_token: string
+          p_game_id: string | null
+          p_prop_id: string | null
+          p_graded: string
+          p_evidence: string
+          p_source_url: string
+        }
+        Returns: Json
+      }
+      league_dispute_rule: {
+        Args: { p_dispute_id: string; p_ruling: string; p_note: string; p_correction: Json | null }
+        Returns: Json
+      }
+      league_correct_game: {
+        Args: { p_game_id: string; p_away: number | null; p_home: number | null; p_winner: string | null; p_note: string }
+        Returns: Json
+      }
+      league_correct_prop: {
+        Args: { p_prop_id: string; p_actual: number | null; p_void: boolean; p_note: string }
+        Returns: Json
+      }
+      league_turn_credit: {
+        Args: { p_token: string; p_game_id: string; p_credited_to: string; p_argument_url: string | null }
+        Returns: Json
+      }
+      league_stamp_turn: {
+        Args: { p_season: number; p_week: number; p_handle: string; p_game_id: string; p_note: string | null }
+        Returns: Json
+      }
+      league_docket_json: { Args: Record<string, never>; Returns: Json }
     }
     Enums: Record<string, never>
     CompositeTypes: Record<string, never>

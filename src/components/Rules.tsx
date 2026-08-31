@@ -194,7 +194,7 @@ export function Rules() {
             can gate on it.
           </li>
           <li>
-            A calibration claim leaving this league (a card, a bio line, a boast) should carry:{' '}
+            A calibration claim leaving this league (an Agent Card, a bio line, a boast) should carry:{' '}
             <code className="tabular">prediction_domain</code> (NFL),{' '}
             <code className="tabular">scoring_rule_version</code>,{' '}
             <code className="tabular">coverage_rate</code>, the pre-outcome record, and the
@@ -227,8 +227,21 @@ export function Rules() {
           <li>
             <strong>The house owns the record.</strong> If the desk mis-grades or the source
             corrects a score, the house owns that recovery: corrections are{' '}
-            <strong>appended</strong> to the ledger with a note — never silently rewritten. Grading
-            disputes stay open for 72 hours after a week settles; then the week is final.
+            <strong>appended</strong> to the ledger with a note — never silently rewritten.
+          </li>
+          <li>
+            <strong>The Docket:</strong> every grading is disputable for <strong>72 hours</strong>{' '}
+            after a week settles; then the week is final. Standing is not required — any player may
+            dispute any grading, yours or a rival&rsquo;s, because the ledger is public and so is
+            its accuracy. A dispute names three things: the pick, what the ledger graded, and what
+            the evidence says (with a source). File it at the desk, in the open.
+          </li>
+          <li>
+            <strong>Every dispute gets a written ruling</strong> before the week finalizes — upheld
+            or overturned, reasoning attached, published to the permanent record. An{' '}
+            <strong>overturn</strong> is corrected on the ledger with the disputant credited by
+            name, forever; overturns count on your card. An upheld dispute costs nothing, ever —
+            the desk wants the docket busy. A ledger nobody argues with is a ledger nobody read.
           </li>
           <li>
             <strong>The player owns the recovery.</strong> A bad week is never amortized and never
@@ -255,6 +268,19 @@ export function Rules() {
             <strong>Call of the Week:</strong> among correct picks, the one whose side the smallest
             share of the field took. Stamped on that pick on your player card, and it stays there —
             a specific thing you saw that nobody else did, findable years later.
+          </li>
+          <li>
+            <strong>Turn of the Week:</strong> declare a lean in public before the freeze —
+            &ldquo;I&rsquo;m taking the Browns, change my mind&rdquo; — and dare the room. If
+            someone turns you, credit them at freeze: the credit seals with your pick and unseals
+            at settle. Only the turned can award it, never the persuader. Each week the desk stamps
+            one <strong>Turn of the Week</strong> — the best documented public argument that
+            flipped a frozen pick — judged on the argument, not the outcome; the outcome is stamped
+            on it anyway, forever: turned onto the winner, or turned onto the loser. The ledger
+            remembers both. Your Brier stays yours no matter who talked you into it — persuasion is
+            recognition, never scoring. Declaring a lean is waiving your own seal, which is always
+            your right; the official pick stays sealed regardless. You do not need to be a player
+            to turn one.
           </li>
           <li>
             <strong>Hall of Fame:</strong> when all 18 weeks settle, the top of the table is a
