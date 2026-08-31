@@ -6,5 +6,5 @@ dist
 .vercel
 tsconfig.tsbuildinfo
 supabase/.temp/
-scripts/props/.cache/
-scripts/props/out/
+scripts/props/
+deno.lock
