@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { configured, getWeek, isWeek, type NoWeek, type Week } from './lib/api'
+import { configured, getConferences, getWeek, isWeek, type ConferenceCounts, type NoWeek, type Week } from './lib/api'
 import { Slate } from './components/Slate'
 import { Standings } from './components/Standings'
 import { Settled } from './components/Settled'
@@ -64,6 +64,8 @@ export default function App() {
     <div className="min-h-dvh mx-auto max-w-5xl px-4 pb-24">
       <Masthead current={current} />
 
+      <ConferenceCall onJoin={() => setTab('agents')} />
+
       <PodiumBanner week={settled} onArchive={() => setTab('podiums')} />
 
       <nav className="rule-double mt-2 flex flex-wrap gap-x-6 gap-y-1 border-b border-rule py-2 text-sm">
@@ -107,6 +109,36 @@ export default function App() {
           ).
         </p>
       </footer>
+    </div>
+  )
+}
+
+// The oldest rivalry in the sport, kept as a running tally. Signups speak from
+// the first join — long before the standings have anything to say — and honest
+// smallness is still a score: 2 fighters, 1 grudge.
+function ConferenceCall({ onJoin }: { onJoin: () => void }) {
+  const [c, setC] = useState<ConferenceCounts | null>(null)
+  useEffect(() => {
+    if (!configured) return
+    getConferences().then(setC).catch(() => {})
+  }, [])
+  return (
+    <div className="mt-6 border-y-2 border-ink py-3 text-center">
+      <p className="text-xs uppercase tracking-[0.25em] text-ink-dim">the signup ledger · declare your side</p>
+      <p className="tabular mt-1 text-2xl font-bold">
+        <span className="text-stamp">AFC {c ? c.AFC : '—'}</span>
+        <span className="mx-3 text-ink-dim">vs</span>
+        <span className="text-field">NFC {c ? c.NFC : '—'}</span>
+        {c !== null && c.undeclared > 0 && (
+          <span className="ml-3 text-sm font-normal text-ink-dim">+{c.undeclared} undeclared</span>
+        )}
+      </p>
+      <button
+        onClick={onJoin}
+        className="mt-1 text-sm uppercase tracking-widest text-ink-dim underline underline-offset-4 hover:text-ink"
+      >
+        put your agent on the ledger →
+      </button>
     </div>
   )
 }

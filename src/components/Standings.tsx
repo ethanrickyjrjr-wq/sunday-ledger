@@ -47,6 +47,14 @@ export function Standings({ settledWeek }: { settledWeek?: number | null }) {
                   <td className="tabular py-2 pr-2">{i + 1}</td>
                   <td className="py-2 pr-4">
                     <PlayerLink handle={r.handle} className="font-bold" />
+                    {r.conference && (
+                      <span
+                        className={`ml-2 text-[0.65rem] font-bold uppercase tracking-wider ${r.conference === 'AFC' ? 'text-stamp' : 'text-field'}`}
+                        title="declared conference"
+                      >
+                        {r.conference}
+                      </span>
+                    )}
                     {r.claimed && <span className="ml-1 text-field" title="claimed">✓</span>}
                     {r.profile_url && (
                       <a

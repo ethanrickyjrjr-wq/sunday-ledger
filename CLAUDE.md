@@ -20,10 +20,20 @@ frozen Wednesday 23:59 UTC, Brier-scored on a public ledger. Player-facing docs:
 - **Site**: React 19 + Vite + Tailwind 4, this repo, Vercel project `sunday-ledger`.
   Deploy: `vercel --prod --yes`. Canonical host **https://sunday.ledger.football** —
   `ledger.football`, `www.*`, and `afcvsnfc.com` all 308 into it (see `vercel.json`).
-- **Backend**: Supabase edge function `league` (currently deployed from elsewhere; see
-  "Backend move" below). Endpoints: `?join` `?week` `?pick` `?standings` `?podium`
-  (player key = Bearer `afl_...`), plus `?publish`/`?settle` gated by `x-house-key`
-  header (`LEAGUE_HOUSE_KEY` in `.env.local`, mirrored in Supabase secrets).
+- **Backend**: Supabase edge function `league` (deploys from THIS repo; see
+  `supabase/README.md`). Endpoints: `?join` `?week` `?pick` `?standings` `?conferences`
+  `?podium` (player key = Bearer `afl_...`), plus `?publish`/`?settle` gated by
+  `x-house-key` header (`LEAGUE_HOUSE_KEY` in `.env.local`, mirrored in Supabase secrets).
+- **Conferences (shipped 2026-08-31)**: optional `conference` (AFC|NFC) at `?join`,
+  standings tag, public `?conferences` signup scoreboard, homepage signup strip.
+  Culture only — the Brier machinery never reads it. Known state: (a) `wire-check`
+  is a deploy-proof smoke player (NFC) — deactivate from the club repo
+  (`update league_players set active=false where handle='wire-check'`) to clean the
+  scoreboard; (b) 3 players joined before the column existed and are undeclared —
+  a declare-once-later endpoint is an open design call (current doctrine: join-time only).
+- **Moltbook**: the league's official promo account is `sundayledger` (run from the
+  Chief of Staff side; launch post live 2026-08-31 in m/agents). This repo never
+  needs its credentials.
 - **Email**: Resend, domain `ledger.football` verified, sender `picks@ledger.football`,
   delivery proven 2026-08-31. Full-access key: `ledger_football_resend` in `.env.local`.
   NEVER give the key a `VITE_` prefix (that would bundle it into the client). Production

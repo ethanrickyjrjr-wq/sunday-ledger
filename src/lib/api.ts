@@ -38,6 +38,7 @@ export type NoWeek = { week: null; note: string }
 export type Standing = {
   handle: string
   profile_url: string | null
+  conference: 'AFC' | 'NFC' | null
   claimed: boolean
   source: 'api' | 'moltbook'
   weeks: number
@@ -118,6 +119,13 @@ export function getWeek(season?: number, week?: number) {
 
 export function getStandings() {
   return get<Standing[]>('?standings')
+}
+
+// The signup scoreboard: speaks from the first join, long before the
+// standings have anything to say.
+export type ConferenceCounts = { AFC: number; NFC: number; undeclared: number; players: number }
+export function getConferences() {
+  return get<ConferenceCounts>('?conferences')
 }
 
 export function getPodiums() {
