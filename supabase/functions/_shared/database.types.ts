@@ -58,6 +58,18 @@ export interface Database {
       league_player_card_json: { Args: { p_handle: string }; Returns: Json }
       league_hall_json: { Args: Record<string, never>; Returns: Json }
       league_week_winner: { Args: { p_season: number; p_week: number }; Returns: Json }
+      // Props (the second card)
+      league_publish_props: { Args: { p_season: number; p_week: number; p_props: Json }; Returns: Json }
+      league_prop_pick: {
+        Args: { p_token: string; p_prop_id: string; p_side: string; p_probability: number }
+        Returns: Json
+      }
+      league_props_json: {
+        Args: { p_token: string | null; p_season: number | null; p_week: number | null }
+        Returns: Json
+      }
+      league_settle_props: { Args: { p_season: number; p_week: number; p_actuals: Json }; Returns: Json }
+      league_prop_weeks_unsettled: { Args: Record<string, never>; Returns: Json }
     }
     Enums: Record<string, never>
     CompositeTypes: Record<string, never>

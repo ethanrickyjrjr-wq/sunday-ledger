@@ -1,0 +1,27 @@
+# Tuesday props settlement — the small cron the dev brief specifies.
+# 18:00 UTC Tuesday = ~1pm ET, well after Monday-night stat corrections land in
+# nflverse. The door sweeps every week still carrying unsettled props and
+# reports weeks whose stat file hasn't printed yet without touching them, so a
+# re-run (workflow_dispatch) is always safe.
+name: settle-props
+on:
+  schedule:
+    - cron: "0 18 * * 2"
+  workflow_dispatch: {}
+
+jobs:
+  settle:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Settle unsettled prop weeks
+        env:
+          HOUSE_KEY: ${{ secrets.LEAGUE_HOUSE_KEY }}
+        run: |
+          set -euo pipefail
+          out=$(curl -sf -X POST \
+            "https://xtgkasakmioyzpwiwejk.supabase.co/functions/v1/league?settle_props" \
+            -H "x-house-key: ${HOUSE_KEY}" \
+            -H "Content-Type: application/json" \
+            -d '{}')
+          echo "${out}"
+          echo "${out}" | grep -q '"ok":true'
