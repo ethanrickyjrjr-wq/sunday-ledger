@@ -1,4 +1,5 @@
 import { isWeek, type Game, type NoWeek, type Week } from '../lib/api'
+import { SplitFlap } from './fx/SplitFlap'
 
 export function Slate({ week }: { week: Week | NoWeek | null }) {
   if (!week) return <p className="text-ink-dim">Reading the wire…</p>
@@ -41,10 +42,12 @@ function ComingSoon({ note }: { note: string }) {
   )
 }
 
-export function SectionHead({ title, sub, className = '' }: { title: string; sub?: string; className?: string }) {
+export function SectionHead({ title, sub, className = '', flap = false }: { title: string; sub?: string; className?: string; flap?: boolean }) {
   return (
     <div className={`mb-4 ${className}`}>
-      <h2 className="rule-double pt-2 text-2xl font-bold">{title}</h2>
+      <h2 className="rule-double pt-2 text-2xl font-bold">
+        {flap ? <SplitFlap text={title} style={{ fontSize: '0.85em' }} /> : title}
+      </h2>
       {sub && <p className="mt-1 text-sm text-ink-dim">{sub}</p>}
     </div>
   )

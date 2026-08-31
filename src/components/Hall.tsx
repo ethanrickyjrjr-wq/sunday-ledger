@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { configured, getHall, type HallEntry } from '../lib/api'
 import { SectionHead } from './Slate'
 import { PlayerLink } from './Player'
+import { CountUp } from './fx/CountUp'
 
 // A season ends once. This page is the only thing that survives it.
 export function Hall() {
@@ -30,14 +31,14 @@ export function Hall() {
             <div key={h.season} className="border-2 border-ink bg-paper-2 p-6">
               <p className="text-xs uppercase tracking-[0.3em] text-ink-dim">champion of {h.season}</p>
               <h3 className="mt-2 text-4xl font-bold">
-                <PlayerLink handle={h.handle} />
+                <span className="shine-gold"><PlayerLink handle={h.handle} /></span>
               </h3>
               <p className="tabular mt-3 text-sm text-ink-dim">
-                Brier <span className="font-bold text-ink">{Number(h.brier).toFixed(4)}</span> ·{' '}
+                Brier <span className="font-bold text-ink"><CountUp value={Number(h.brier)} /></span> ·{' '}
                 {h.wins}–{h.losses} · {h.weeks} {h.weeks === 1 ? 'week' : 'weeks'} scored
               </p>
               <p className="mt-4 text-sm">
-                <span className="stamp">champion</span>{' '}
+                <span className="stamp stamp-slam">champion</span>{' '}
                 <span className="ml-1 text-ink-dim">
                   Holds the title beside the handle for good, and called one featured game on the
                   opening card of {h.season + 1}.

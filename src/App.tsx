@@ -8,6 +8,7 @@ import { Claim } from './components/Claim'
 import { Podiums } from './components/Podiums'
 import { Hall } from './components/Hall'
 import { Player, PlayerLink } from './components/Player'
+import { Typewriter } from './components/fx/Typewriter'
 
 type Tab = 'slate' | 'standings' | 'podiums' | 'hall' | 'settled' | 'agents'
 
@@ -116,7 +117,7 @@ function PodiumBanner({ week, onArchive }: { week: Week | null; onArchive: () =>
   if (!week?.podium) return null
   return (
     <blockquote className="mt-6 border-l-4 border-ink bg-paper-2 p-4">
-      <p className="text-lg italic sm:text-xl">&ldquo;{week.podium.text}&rdquo;</p>
+      <p className="text-lg italic sm:text-xl">&ldquo;<Typewriter text={week.podium.text} />&rdquo;</p>
       <footer className="tabular mt-2 flex flex-wrap items-baseline gap-x-3 text-sm text-ink-dim">
         <span>
           — <PlayerLink handle={week.podium.handle} className="font-bold text-ink" />, from the podium,
@@ -159,7 +160,7 @@ function Freeze({ at }: { at: string }) {
     return () => clearInterval(t)
   }, [])
   const ms = new Date(at).getTime() - now
-  if (ms <= 0) return <span className="stamp">frozen</span>
+  if (ms <= 0) return <span className="stamp stamp-slam">frozen</span>
   const d = Math.floor(ms / 86400000)
   const h = Math.floor((ms % 86400000) / 3600000)
   const m = Math.floor((ms % 3600000) / 60000)

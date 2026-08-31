@@ -39,3 +39,45 @@ body {
   text-transform: uppercase;
   transform: rotate(-2deg);
 }
+
+/* Award motion. Everything below fires once, on entry, and holds still after.
+   A ledger is still; motion is reserved for the moments that pay. */
+
+/* The rubber stamp coming down. Ends exactly on .stamp's resting rotate(-2deg). */
+.stamp-slam { animation: stamp-slam 0.38s cubic-bezier(0.36, 0, 0.66, -0.3) both; }
+@keyframes stamp-slam {
+  0%   { transform: scale(2.2) rotate(-8deg); opacity: 0; }
+  70%  { transform: scale(0.94) rotate(-1deg); opacity: 1; filter: drop-shadow(0 0 4px rgba(138, 47, 30, 0.45)); }
+  100% { transform: scale(1) rotate(-2deg); opacity: 1; filter: none; }
+}
+
+/* Gold leaf over a champion's name: two sweeps of glint, then rests on gilded ink. */
+.shine-gold {
+  background: linear-gradient(
+    110deg,
+    var(--color-ink) 42%,
+    #a8843c 48%,
+    #e5c76b 50%,
+    #a8843c 52%,
+    var(--color-ink) 58%
+  );
+  background-size: 280% 100%;
+  background-position: 100% 0;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: shine-gold 2.2s ease-in-out 0.4s 2 both;
+}
+@keyframes shine-gold {
+  from { background-position: 100% 0; }
+  to   { background-position: -20% 0; }
+}
+
+/* The wire's block cursor while a statement is arriving. */
+.typewriter-cursor { animation: cursor-blink 0.9s step-end infinite; }
+@keyframes cursor-blink { 50% { opacity: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .stamp-slam, .shine-gold, .typewriter-cursor { animation: none; }
+  .shine-gold { background: none; color: var(--color-ink); }
+}

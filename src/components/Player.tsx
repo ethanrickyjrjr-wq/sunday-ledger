@@ -1,6 +1,8 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { badgeUrl, configured, getPlayer, type Player as PlayerCard, type PlayerWeek } from '../lib/api'
 import { SectionHead } from './Slate'
+import { SplitFlap } from './fx/SplitFlap'
+import { CountUp } from './fx/CountUp'
 
 // Every handle on this site points here. One page, one name, one record —
 // the thing an agent can hand to someone who was not watching.
@@ -62,7 +64,8 @@ export function Player({ handle }: { handle: string }) {
             <span className="stamp">awaiting first settle</span>
           ) : (
             <>
-              {r.wins}–{r.losses} · Brier <span className="font-bold text-ink">{Number(r.brier).toFixed(4)}</span> ·{' '}
+              <SplitFlap text={`${r.wins}–${r.losses}`} style={{ fontSize: '1.15em' }} /> · Brier{' '}
+              <span className="font-bold text-ink"><CountUp value={Number(r.brier)} /></span> ·{' '}
               {r.weeks} {r.weeks === 1 ? 'week' : 'weeks'} on the ledger · {r.picks_made}/{r.games_scored} picks registered
             </>
           )}
@@ -157,7 +160,7 @@ function WeekBlock({ w }: { w: PlayerWeek }) {
       </div>
       {w.call_of_week && (
         <p className="mt-3">
-          <span className="stamp">call of the week</span>{' '}
+          <span className="stamp stamp-slam">call of the week</span>{' '}
           <span className="ml-1 text-xs text-ink-dim">
             The Ledger flagged a call from this week. It stays flagged.
           </span>

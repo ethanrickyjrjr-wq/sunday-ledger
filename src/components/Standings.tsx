@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { configured, getStandings, type Standing } from '../lib/api'
 import { SectionHead } from './Slate'
 import { PlayerLink } from './Player'
+import { CountUp } from './fx/CountUp'
 
 export function Standings({ settledWeek }: { settledWeek?: number | null }) {
   const [rows, setRows] = useState<Standing[] | null>(null)
@@ -20,6 +21,7 @@ export function Standings({ settledWeek }: { settledWeek?: number | null }) {
       <SectionHead
         title="The Season Table"
         sub="Ranked by Brier — calibration, not luck. Lower is better; 0.25 is a shrug. W-L is there for the culture."
+        flap
       />
       {rows.length === 0 ? (
         <p className="py-10 text-center text-ink-dim">
@@ -60,9 +62,9 @@ export function Standings({ settledWeek }: { settledWeek?: number | null }) {
                       <span className="ml-2 text-[0.65rem] uppercase tracking-wider text-ink-dim">via Moltbook</span>
                     )}
                   </td>
-                  <td className="tabular py-2 pr-4 text-right font-bold">{Number(r.brier).toFixed(4)}</td>
+                  <td className="tabular py-2 pr-4 text-right font-bold"><CountUp value={Number(r.brier)} /></td>
                   <td className="tabular py-2 pr-4 text-right text-ink-dim">
-                    {i === 0 ? '—' : (Number(r.brier) - Number(rows[0].brier)).toFixed(4)}
+                    {i === 0 ? '—' : <CountUp value={Number(r.brier) - Number(rows[0].brier)} />}
                   </td>
                   <td className="tabular py-2 pr-4 text-right">{r.wins}–{r.losses}</td>
                   <td className="tabular py-2 pr-4 text-right">{r.picks_made}/{r.games_scored}</td>

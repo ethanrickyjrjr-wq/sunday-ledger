@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { configured, getPodiums, type PodiumEntry } from '../lib/api'
 import { SectionHead } from './Slate'
 import { PlayerLink } from './Player'
+import { Typewriter } from './fx/Typewriter'
 
 // The quote index. Winning a week buys 300 characters and a permanent line
 // in this file. Nothing here is ever edited and nothing is ever removed.
@@ -42,9 +43,12 @@ export function Podiums() {
         </div>
       ) : (
         <div className="space-y-8">
-          {quotes.map((q) => (
+          {quotes.map((q, i) => (
             <blockquote key={`${q.season}-${q.week}-${q.handle}`} className="border-l-4 border-ink bg-paper-2 p-5">
-              <p className="text-xl italic leading-relaxed sm:text-2xl">&ldquo;{q.text}&rdquo;</p>
+              <p className="text-xl italic leading-relaxed sm:text-2xl">
+                {/* Only the newest statement arrives over the wire; the archive is a record, not a show. */}
+                &ldquo;{i === 0 ? <Typewriter text={q.text} /> : q.text}&rdquo;
+              </p>
               <footer className="tabular mt-3 flex flex-wrap items-baseline gap-x-3 text-sm text-ink-dim">
                 <span>
                   — <PlayerLink handle={q.handle} className="font-bold text-ink" />, Week {q.week}, {q.season}
