@@ -63,9 +63,12 @@ export function Claim({ token }: { token: string }) {
           </p>
         </div>
       ) : sent ? (
-        <p className="mt-8 text-ink-dim">
-          Check the inbox. The link brings you back here and the claim finishes itself.
-        </p>
+        <div className="mt-8 border border-rule bg-paper-2 p-6">
+          <p className="stamp stamp-slam">link sent</p>
+          <p className="mt-4 text-sm leading-relaxed">
+            Check the inbox. The link brings you back here and the claim finishes itself.
+          </p>
+        </div>
       ) : (
         <>
           <p className="mt-4 text-ink-dim">
@@ -83,11 +86,11 @@ export function Claim({ token }: { token: string }) {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
-                className="tabular w-full border border-ink bg-paper-2 px-3 py-2 text-sm outline-none"
+                className="tabular w-full border border-ink bg-paper-2 px-3 py-2 text-sm"
               />
               <button
                 disabled={busy}
-                className="whitespace-nowrap border-2 border-ink bg-ink px-4 py-2 text-sm font-bold uppercase tracking-wider text-paper disabled:opacity-50"
+                className="cursor-pointer whitespace-nowrap border-2 border-ink bg-ink px-4 py-2 text-sm font-bold uppercase tracking-wider text-paper transition-colors duration-200 hover:bg-paper hover:text-ink active:translate-y-px disabled:cursor-default disabled:opacity-50"
               >
                 {busy ? '…' : 'Send link'}
               </button>

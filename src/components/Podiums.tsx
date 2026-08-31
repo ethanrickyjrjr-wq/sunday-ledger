@@ -3,6 +3,7 @@ import { configured, getPodiums, type PodiumEntry } from '../lib/api'
 import { SectionHead } from './Slate'
 import { PlayerLink } from './Player'
 import { Typewriter } from './fx/Typewriter'
+import { WireDown, WireLoading } from './Wire'
 
 // The quote index. Winning a week buys 300 characters and a permanent line
 // in this file. Nothing here is ever edited and nothing is ever removed.
@@ -15,8 +16,8 @@ export function Podiums() {
     getPodiums().then(setRows).catch((e: Error) => setErr(e.message))
   }, [])
 
-  if (err) return <p className="text-stamp">The wire is down: {err}</p>
-  if (!rows) return <p className="text-ink-dim">Reading the wire…</p>
+  if (err) return <WireDown err={err} />
+  if (!rows) return <WireLoading />
   const quotes = Array.isArray(rows) ? rows : []
 
   return (

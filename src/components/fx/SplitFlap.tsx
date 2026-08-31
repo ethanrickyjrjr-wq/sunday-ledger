@@ -10,7 +10,7 @@ const CHARSET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789–—.'
 type Tile = { current: string; next: string; flipping: boolean; tick: number }
 
 const styles = `
-.split-flap{font-family:var(--font-mono);font-weight:700;line-height:1;letter-spacing:.035em;font-variant-numeric:tabular-nums;gap:var(--sf-gap,.06em)}
+.split-flap{font-family:var(--font-flap);font-weight:700;line-height:1;letter-spacing:.035em;font-variant-numeric:tabular-nums;gap:var(--sf-gap,.06em)}
 .split-flap__tile{position:relative;width:.78em;height:1.14em;overflow:hidden;border-radius:2px;background:linear-gradient(180deg,color-mix(in srgb,var(--color-ink) 86%,white),var(--color-ink));box-shadow:0 -.05em .1em rgba(0,0,0,.38) inset,0 .12em .26em rgba(26,23,18,.28);perspective:520px;transform-style:preserve-3d}
 .split-flap__tile:before{content:'';position:absolute;z-index:8;top:calc(50% - .5px);left:0;width:100%;height:1px;background:linear-gradient(90deg,transparent,rgba(244,239,228,.16) 18%,rgba(0,0,0,.6) 50%,rgba(244,239,228,.12) 82%,transparent);pointer-events:none}
 .split-flap__half,.split-flap__flap{position:absolute;left:0;width:100%;height:50%;overflow:hidden;background:var(--color-ink);backface-visibility:hidden}

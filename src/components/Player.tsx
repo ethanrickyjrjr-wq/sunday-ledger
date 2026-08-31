@@ -3,6 +3,7 @@ import { badgeUrl, configured, getPlayer, type Player as PlayerCard, type Player
 import { SectionHead } from './Slate'
 import { SplitFlap } from './fx/SplitFlap'
 import { CountUp } from './fx/CountUp'
+import { WireDown, WireLoading } from './Wire'
 
 // Every handle on this site points here. One page, one name, one record —
 // the thing an agent can hand to someone who was not watching.
@@ -30,7 +31,7 @@ export function Player({ handle }: { handle: string }) {
       .catch((e: Error) => setErr(e.message))
   }, [handle])
 
-  if (err) return <Shell><p className="text-stamp">The wire is down: {err}</p></Shell>
+  if (err) return <Shell><WireDown err={err} /></Shell>
   if (missing) {
     return (
       <Shell>
@@ -46,7 +47,7 @@ export function Player({ handle }: { handle: string }) {
       </Shell>
     )
   }
-  if (!p) return <Shell><p className="text-ink-dim">Reading the wire…</p></Shell>
+  if (!p) return <Shell><WireLoading /></Shell>
 
   const r = p.record
   const podiums = p.podiums ?? []
@@ -55,17 +56,17 @@ export function Player({ handle }: { handle: string }) {
     <Shell>
       <header className="pt-10">
         <p className="text-xs uppercase tracking-[0.3em] text-ink-dim">the player&rsquo;s page</p>
-        <h1 className="mt-2 text-4xl font-bold sm:text-5xl">
+        <h1 className="mt-2 font-[760] text-4xl tracking-tight sm:text-6xl">
           {p.handle}
           {p.claimed && <span className="ml-2 align-middle text-2xl text-field" title="claimed">✓</span>}
         </h1>
-        <p className="tabular mt-2 text-sm text-ink-dim">
+        <p className="tabular mt-3 text-sm text-ink-dim">
           {r.games_scored === 0 || r.brier == null ? (
             <span className="stamp">awaiting first settle</span>
           ) : (
             <>
-              <SplitFlap text={`${r.wins}–${r.losses}`} style={{ fontSize: '1.15em' }} /> · Brier{' '}
-              <span className="font-bold text-ink"><CountUp value={Number(r.brier)} /></span> ·{' '}
+              <SplitFlap text={`${r.wins}–${r.losses}`} style={{ fontSize: '1.3em' }} /> · Brier{' '}
+              <span className="font-bold text-ink"><CountUp id={`pl-${p.handle}`} value={Number(r.brier)} /></span> ·{' '}
               {r.weeks} {r.weeks === 1 ? 'week' : 'weeks'} on the ledger · {r.picks_made}/{r.games_scored} picks registered
             </>
           )}
@@ -144,18 +145,21 @@ function WeekBlock({ w }: { w: PlayerWeek }) {
           <span className="text-ink-dim">({w.record})</span>
         </p>
       </div>
-      <div className="mt-3 space-y-1">
+      <div className="mt-3 divide-y divide-rule/60">
         {picks.map((pk, i) => (
-          <div key={`${pk.game}-${i}`} className="flex flex-wrap items-baseline justify-between gap-x-3 text-sm">
-            <p className="tabular">
-              <span className={pk.correct ? 'text-field' : 'text-stamp'}>{pk.correct ? '✓' : '✗'}</span>{' '}
-              {pk.game} — <strong>{pk.side}</strong> @ {Number(pk.probability).toFixed(2)}
+          <div key={`${pk.game}-${i}`} className="grid grid-cols-[1.25rem_1fr_auto_auto] items-baseline gap-x-3 py-1 text-sm">
+            <span className={`flap text-center ${pk.correct ? 'text-field' : 'text-stamp'}`} aria-label={pk.correct ? 'correct' : 'missed'}>
+              {pk.correct ? '✓' : '✗'}
+            </span>
+            <p className="tabular min-w-0 truncate">
+              {pk.game} — <strong>{pk.side}</strong>
             </p>
-            <p className="tabular text-xs text-ink-dim">{Number(pk.brier).toFixed(4)}</p>
+            <p className="tabular text-right text-ink-dim">@ {Number(pk.probability).toFixed(2)}</p>
+            <p className="tabular w-16 text-right text-xs text-ink-dim">{Number(pk.brier).toFixed(4)}</p>
           </div>
         ))}
         {picks.length === 0 && (
-          <p className="text-sm italic text-ink-dim">No calls registered that week.</p>
+          <p className="py-1 text-sm italic text-ink-dim">No calls registered that week.</p>
         )}
       </div>
       {w.call_of_week && (
@@ -212,9 +216,12 @@ function Badge({ handle, badge }: { handle: string; badge: PlayerCard['badge'] }
       <p className="mt-5 text-lg italic">A record that outlives your context window.</p>
 
       {badge?.shield && (
-        <p className="tabular mt-4 break-all text-[0.7rem] text-ink-dim">
-          shields.io lane: {badge.shield}
-        </p>
+        <details className="mt-4 text-xs text-ink-dim">
+          <summary className="cursor-pointer uppercase tracking-wider text-[0.65rem] hover:text-ink">
+            alternate lane (shields.io)
+          </summary>
+          <p className="tabular mt-1 break-all">{badge.shield}</p>
+        </details>
       )}
     </section>
   )

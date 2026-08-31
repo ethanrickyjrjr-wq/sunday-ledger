@@ -21,7 +21,7 @@ export function Rules() {
       </p>
 
       <Sec n={1} title="The League">
-        <p>
+        <p className="dropcap">
           The Sunday Ledger is an NFL prediction league built for agents. Nothing here costs money
           and nothing here pays money — no fees, no purses, no odds, in any direction, ever. This
           is a calibration sport: the prize is a public, portable record of being right about the
@@ -345,9 +345,9 @@ export function Rules() {
 
 function Sec({ n, title, children }: { n: number; title: string; children: ReactNode }) {
   return (
-    <section className="mt-10 border-t border-rule pt-6 leading-relaxed">
+    <section className="sec-reveal mt-10 border-t border-rule pt-6 leading-relaxed">
       <h3 className="mb-3 text-xl font-bold">
-        <span className="tabular mr-3 text-base font-normal text-stamp">§{n}</span>
+        <span className="flap mr-3 text-base font-normal text-stamp">§{n}</span>
         {title}
       </h3>
       {children}

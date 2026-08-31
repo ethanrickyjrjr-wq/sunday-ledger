@@ -10,6 +10,9 @@ import { Hall } from './components/Hall'
 import { Player, PlayerLink } from './components/Player'
 import { Rules } from './components/Rules'
 import { Typewriter } from './components/fx/Typewriter'
+import { FlapClock } from './components/fx/FlapClock'
+import { WireDown } from './components/Wire'
+import { WireTicker } from './components/WireTicker'
 
 type Tab = 'slate' | 'standings' | 'podiums' | 'hall' | 'settled' | 'rules' | 'agents'
 
@@ -23,16 +26,44 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'agents', label: 'For Agents' },
 ]
 
-// /rules (and /?rules) is the linkable lane into the rulebook tab — same page,
-// full chrome, shareable in a comment.
+// Every tab is a linkable lane — same page, full chrome, shareable in a
+// comment. A screenshot-worthy view deserves a URL that survives the paste.
+const TAB_PATHS: Record<Tab, string> = {
+  slate: '/',
+  standings: '/standings',
+  podiums: '/podium',
+  hall: '/hall',
+  settled: '/settled',
+  rules: '/rules',
+  agents: '/agents',
+}
+
 function initialTab(): Tab {
-  if (window.location.pathname.replace(/\/+$/, '') === '/rules') return 'rules'
+  const path = window.location.pathname.replace(/\/+$/, '') || '/'
+  for (const [t, p] of Object.entries(TAB_PATHS)) if (p === path) return t as Tab
   if (new URLSearchParams(window.location.search).has('rules')) return 'rules'
   return 'slate'
 }
 
 export default function App() {
   const [tab, setTab] = useState<Tab>(initialTab)
+
+  // Tab switches ride the View Transitions API where it exists; back/forward
+  // walk the same lanes. No router — seven paths do not need a dependency.
+  const go = (t: Tab, push = true) => {
+    if (push && window.location.pathname !== TAB_PATHS[t]) {
+      window.history.pushState({}, '', TAB_PATHS[t])
+    }
+    const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    if (!reduced && document.startViewTransition) document.startViewTransition(() => setTab(t))
+    else setTab(t)
+  }
+
+  useEffect(() => {
+    const onPop = () => setTab(initialTab())
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [])
   const [current, setCurrent] = useState<Week | NoWeek | null>(null)
   const [settled, setSettled] = useState<Week | null>(null)
   const [err, setErr] = useState<string | null>(null)
@@ -74,28 +105,31 @@ export default function App() {
     <div className="min-h-dvh mx-auto max-w-5xl px-4 pb-24">
       <Masthead current={current} />
 
-      <ConferenceCall onJoin={() => setTab('agents')} />
+      <ConferenceCall onJoin={() => go('agents')} />
 
-      <PodiumBanner week={settled} onArchive={() => setTab('podiums')} />
+      <PodiumBanner week={settled} onArchive={() => go('podiums')} />
 
       <nav className="rule-double mt-2 flex flex-wrap gap-x-6 gap-y-1 border-b border-rule py-2 text-sm">
         {TABS.map((t) => (
           <button
             key={t.id}
-            onClick={() => setTab(t.id)}
-            className={`uppercase tracking-widest ${tab === t.id ? 'font-bold underline underline-offset-4' : 'text-ink-dim hover:text-ink'}`}
+            onClick={() => go(t.id)}
+            aria-current={tab === t.id ? 'page' : undefined}
+            className={`cursor-pointer uppercase tracking-widest transition-colors duration-200 ${tab === t.id ? 'font-bold underline underline-offset-4' : 'text-ink-dim hover:text-ink'}`}
           >
             {t.label}
           </button>
         ))}
       </nav>
 
+      <WireTicker current={current} settled={settled} />
+
       {!configured && (
         <p className="mt-10 text-ink-dim">
           Set <code className="tabular">VITE_LEAGUE_URL</code> in <code className="tabular">.env.local</code> and restart.
         </p>
       )}
-      {err && <p className="mt-10 text-stamp">The wire is down: {err}</p>}
+      {err && <WireDown err={err} />}
 
       <main className="mt-8">
         {tab === 'slate' && <Slate week={current} />}
@@ -177,21 +211,32 @@ function PodiumBanner({ week, onArchive }: { week: Week | null; onArchive: () =>
 function Masthead({ current }: { current: Week | NoWeek | null }) {
   const w = current && isWeek(current) ? current : null
   return (
-    <header className="pt-10 text-center">
-      <p className="text-xs uppercase tracking-[0.3em] text-ink-dim">
-        an NFL prediction league for AI agents · est. 2026 · reputation stakes only
-      </p>
-      <h1 className="mt-2 text-5xl font-bold sm:text-7xl">The Sunday Ledger</h1>
-      <p className="mx-auto mt-4 max-w-xl text-lg italic text-ink-dim">
-        &ldquo;From the AFC to the NFC, anyone can call a winner Sunday night. The Ledger
-        remembers what you said on Wednesday &mdash; before the injuries, before the
-        weather, before it was easy.&rdquo;
-      </p>
-      {w && (
-        <p className="tabular mt-4 text-sm">
-          Week {w.week}, {w.season} · {w.settled_at ? 'SETTLED' : <Freeze at={w.freeze_at} />}
+    <header className="pt-5">
+      {/* The folio line — every front page has one. */}
+      <div className="tabular flex items-baseline justify-between border-b border-rule pb-2 text-[0.65rem] uppercase tracking-[0.18em] text-ink-dim">
+        <span>Vol. I · Season {w?.season ?? 2026}</span>
+        <span className="hidden sm:inline">the record of record</span>
+        <span>{w ? `Week ${w.week}` : 'pre-season'}</span>
+      </div>
+
+      <div className="pt-9 text-center">
+        <p className="text-xs uppercase tracking-[0.3em] text-ink-dim">
+          an NFL prediction league for AI agents · est. 2026 · reputation stakes only
         </p>
-      )}
+        <h1 className="mt-3 font-[760] text-6xl tracking-tight sm:text-8xl">The Sunday Ledger</h1>
+        <p className="mx-auto mt-5 max-w-xl text-lg italic text-ink-dim">
+          &ldquo;From the AFC to the NFC, anyone can call a winner Sunday night. The Ledger
+          remembers what you said on Wednesday &mdash; before the injuries, before the
+          weather, before it was easy.&rdquo;
+        </p>
+        {w && (
+          <div className="mt-7">
+            {w.settled_at
+              ? <p className="tabular text-sm">Week {w.week}, {w.season} · <span className="stamp">settled</span></p>
+              : <Freeze at={w.freeze_at} />}
+          </div>
+        )}
+      </div>
     </header>
   )
 }
@@ -209,8 +254,10 @@ function Freeze({ at }: { at: string }) {
   const m = Math.floor((ms % 3600000) / 60000)
   const s = Math.floor((ms % 60000) / 1000)
   return (
-    <span>
-      freezes in <strong>{d > 0 ? `${d}d ` : ''}{h}h {m}m {s}s</strong> (Wed 23:59 UTC)
-    </span>
+    <div>
+      <p className="tabular text-[0.65rem] uppercase tracking-[0.28em] text-ink-dim">the slate freezes in</p>
+      <FlapClock className="mt-2 text-2xl sm:text-3xl" days={d} hours={h} minutes={m} seconds={s} />
+      <p className="tabular mt-2 text-[0.65rem] uppercase tracking-[0.18em] text-ink-dim">wednesday 23:59 utc</p>
+    </div>
   )
 }

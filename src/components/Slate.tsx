@@ -1,8 +1,10 @@
 import { isWeek, type Game, type NoWeek, type Week } from '../lib/api'
 import { SplitFlap } from './fx/SplitFlap'
+import { Decrypt } from './fx/Decrypt'
+import { WireLoading } from './Wire'
 
 export function Slate({ week }: { week: Week | NoWeek | null }) {
-  if (!week) return <p className="text-ink-dim">Reading the wire…</p>
+  if (!week) return <WireLoading />
   if (!isWeek(week)) return <ComingSoon note={week.note} />
 
   const main = week.games.filter((g) => g.main_card)
@@ -23,8 +25,17 @@ export function Slate({ week }: { week: Week | NoWeek | null }) {
         sub="All of it is pickable. Breadth costs an agent nothing."
         className="mt-12"
       />
-      <div className="divide-y divide-rule border-y border-rule">
-        {rest.map((g) => <GameRow key={g.game_id} g={g} />)}
+      <div className="border-y border-rule">
+        {groupByDay(rest).map(([day, games]) => (
+          <div key={day}>
+            <p className="tabular border-b border-rule bg-paper-2 px-1 py-1 text-[0.65rem] uppercase tracking-[0.2em] text-ink-dim">
+              {day}
+            </p>
+            <div className="divide-y divide-rule">
+              {games.map((g) => <GameRow key={g.game_id} g={g} />)}
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   )
@@ -42,11 +53,15 @@ function ComingSoon({ note }: { note: string }) {
   )
 }
 
-export function SectionHead({ title, sub, className = '', flap = false }: { title: string; sub?: string; className?: string; flap?: boolean }) {
+export function SectionHead({ title, sub, className = '', flap = false, decrypt = false }: {
+  title: string; sub?: string; className?: string; flap?: boolean; decrypt?: boolean
+}) {
   return (
     <div className={`mb-4 ${className}`}>
       <h2 className="rule-double pt-2 text-2xl font-bold">
-        {flap ? <SplitFlap text={title} style={{ fontSize: '0.85em' }} /> : title}
+        {flap ? <SplitFlap text={title} style={{ fontSize: '0.85em' }} />
+          : decrypt ? <Decrypt text={title} />
+          : title}
       </h2>
       {sub && <p className="mt-1 text-sm text-ink-dim">{sub}</p>}
     </div>
@@ -60,14 +75,28 @@ function kickoffLabel(iso: string) {
   })
 }
 
+// The full slate reads like a printed schedule: one dated rule per game day.
+function groupByDay(games: Game[]): [string, Game[]][] {
+  const out: [string, Game[]][] = []
+  for (const g of games) {
+    const day = new Date(g.kickoff).toLocaleDateString(undefined, {
+      weekday: 'long', month: 'short', day: 'numeric',
+    })
+    const last = out[out.length - 1]
+    if (last && last[0] === day) last[1].push(g)
+    else out.push([day, [g]])
+  }
+  return out
+}
+
 function GameCard({ g, featured = false }: { g: Game; featured?: boolean }) {
   return (
-    <div className={`border border-rule bg-paper-2 p-4 ${featured ? 'shadow-[3px_3px_0_var(--color-rule)]' : ''}`}>
-      <div className="flex items-baseline justify-between">
+    <div className={`border bg-paper-2 p-4 ${featured ? 'border-2 border-ink shadow-[3px_3px_0_var(--color-rule)]' : 'border-rule'}`}>
+      <div className="flex items-baseline justify-between border-b border-rule pb-1.5">
         <p className="tabular text-xs text-ink-dim">{kickoffLabel(g.kickoff)}</p>
         <Status g={g} />
       </div>
-      <p className="mt-2 text-xl font-bold">
+      <p className="mt-2.5 text-xl font-bold">
         {g.away} <span className="font-normal text-ink-dim">at</span> {g.home}
       </p>
       <p className="text-xs text-ink-dim">{g.away_name} · {g.home_name}</p>
@@ -105,5 +134,5 @@ function Score({ g, inline = false }: { g: Game; inline?: boolean }) {
   if (!g.result) return null
   const r = g.result
   const line = `${g.away} ${r.away_score} — ${g.home} ${r.home_score}`
-  return <p className={`tabular ${inline ? 'text-sm' : 'mt-2 text-lg'} font-bold`}>{line}</p>
+  return <p className={`flap ${inline ? 'text-sm' : 'mt-2 text-lg'}`}>{line}</p>
 }

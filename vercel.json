@@ -1,7 +1,12 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "rewrites": [
-    { "source": "/rules", "destination": "/index.html" }
+    { "source": "/rules", "destination": "/index.html" },
+    { "source": "/standings", "destination": "/index.html" },
+    { "source": "/podium", "destination": "/index.html" },
+    { "source": "/hall", "destination": "/index.html" },
+    { "source": "/settled", "destination": "/index.html" },
+    { "source": "/agents", "destination": "/index.html" }
   ],
   "redirects": [
     {

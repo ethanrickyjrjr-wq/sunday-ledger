@@ -3,6 +3,7 @@ import { configured, getStandings, type Standing } from '../lib/api'
 import { SectionHead } from './Slate'
 import { PlayerLink } from './Player'
 import { CountUp } from './fx/CountUp'
+import { WireDown, WireLoading } from './Wire'
 
 export function Standings({ settledWeek }: { settledWeek?: number | null }) {
   const [rows, setRows] = useState<Standing[] | null>(null)
@@ -13,8 +14,8 @@ export function Standings({ settledWeek }: { settledWeek?: number | null }) {
     getStandings().then(setRows).catch((e: Error) => setErr(e.message))
   }, [])
 
-  if (err) return <p className="text-stamp">The wire is down: {err}</p>
-  if (!rows) return <p className="text-ink-dim">Reading the wire…</p>
+  if (err) return <WireDown err={err} />
+  if (!rows) return <WireLoading />
 
   return (
     <div>
@@ -43,13 +44,17 @@ export function Standings({ settledWeek }: { settledWeek?: number | null }) {
             </thead>
             <tbody>
               {rows.map((r, i) => (
-                <tr key={r.handle} className="border-b border-rule">
-                  <td className="tabular py-2 pr-2">{i + 1}</td>
+                <tr
+                  key={r.handle}
+                  className={`row-enter border-b border-rule ${i === 0 ? 'bg-paper-2' : ''}`}
+                  style={{ '--row-i': i } as React.CSSProperties}
+                >
+                  <td className="flap py-2 pr-2 text-ink-dim">{i + 1}</td>
                   <td className="py-2 pr-4">
-                    <PlayerLink handle={r.handle} className="font-bold" />
+                    <PlayerLink handle={r.handle} className={i === 0 ? 'shine-gold font-bold' : 'font-bold'} />
                     {r.conference && (
                       <span
-                        className={`ml-2 text-[0.65rem] font-bold uppercase tracking-wider ${r.conference === 'AFC' ? 'text-stamp' : 'text-field'}`}
+                        className={`ml-2 inline-block border border-current px-1 align-[0.08em] text-[0.6rem] font-bold uppercase tracking-wider ${r.conference === 'AFC' ? 'text-stamp' : 'text-field'}`}
                         title="declared conference"
                       >
                         {r.conference}
@@ -70,9 +75,24 @@ export function Standings({ settledWeek }: { settledWeek?: number | null }) {
                       <span className="ml-2 text-[0.65rem] uppercase tracking-wider text-ink-dim">via Moltbook</span>
                     )}
                   </td>
-                  <td className="tabular py-2 pr-4 text-right font-bold"><CountUp value={Number(r.brier)} /></td>
+                  <td className="tabular py-2 pr-4 text-right font-bold"><CountUp id={`st-${r.handle}-brier`} value={Number(r.brier)} /></td>
                   <td className="tabular py-2 pr-4 text-right text-ink-dim">
-                    {i === 0 ? '—' : <CountUp value={Number(r.brier) - Number(rows[0].brier)} />}
+                    {i === 0 ? '—' : (
+                      <span className="inline-block">
+                        <CountUp id={`st-${r.handle}-behind`} value={Number(r.brier) - Number(rows[0].brier)} />
+                        {/* the distance, printed as a rule: full width = the field's widest gap */}
+                        <span
+                          className="mt-0.5 block h-[2px] bg-rule"
+                          style={{
+                            width: `${Math.max(6, Math.round(
+                              ((Number(r.brier) - Number(rows[0].brier)) /
+                                Math.max(1e-9, Number(rows[rows.length - 1].brier) - Number(rows[0].brier))) * 100
+                            ))}%`,
+                            marginLeft: 'auto',
+                          }}
+                        />
+                      </span>
+                    )}
                   </td>
                   <td className="tabular py-2 pr-4 text-right">{r.wins}–{r.losses}</td>
                   <td className="tabular py-2 pr-4 text-right">{r.picks_made}/{r.games_scored}</td>
@@ -97,9 +117,10 @@ function Chase({ rows, settledWeek }: { rows: Standing[]; settledWeek: number | 
   const due = Math.max(0, 18 - played)
   return (
     <p className="mt-4 border-t border-rule pt-3 text-sm text-ink-dim">
+      <span className="mr-1 align-super text-[0.65rem]">*</span>
       Second sits <span className="tabular text-ink">{gap}</span> behind with{' '}
       <span className="tabular text-ink">{due}</span> {due === 1 ? 'week' : 'weeks'} due.
-      Incompleteness is the comeback mechanism.
+      <em> Incompleteness is the comeback mechanism.</em>
     </p>
   )
 }

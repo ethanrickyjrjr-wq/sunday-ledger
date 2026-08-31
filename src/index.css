@@ -1,5 +1,15 @@
 @import "tailwindcss";
 
+/* Departure Mono — the departure-board face. Split-flap tiles and stamps only.
+   Self-hosted (public/fonts, OFL); 22KB woff2. */
+@font-face {
+  font-family: "Departure Mono";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(/fonts/DepartureMono-Regular.woff2) format("woff2");
+}
+
 @theme {
   /* A ledger is paper. Ink, rule lines, one red stamp, one field green. */
   --color-paper: #f4efe4;
@@ -10,8 +20,11 @@
   --color-rule: #c9bfa8;
   --color-stamp: #8a2f1e;
   --color-field: #2f5d3a;
-  --font-serif: Georgia, "Times New Roman", serif;
-  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  /* Newsreader carries an optical-size axis: the same family sets a 72px
+     masthead and 18px body text with period-correct contrast for each. */
+  --font-serif: "Newsreader Variable", Georgia, "Times New Roman", serif;
+  --font-mono: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --font-flap: "Departure Mono", "JetBrains Mono Variable", ui-monospace, monospace;
 }
 
 html, body, #root { min-height: 100dvh; }
@@ -21,10 +34,59 @@ body {
   background: var(--color-paper);
   color: var(--color-ink);
   font-family: var(--font-serif);
+  font-optical-sizing: auto;
   -webkit-font-smoothing: antialiased;
 }
 
+/* Paper is not a flat fill. A fixed grain pass over everything — feTurbulence,
+   zero assets, invisible until it's missing. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  pointer-events: none;
+  opacity: 0.05;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+}
+
+h1, h2, h3 { text-wrap: balance; }
+p { text-wrap: pretty; }
+
+/* One focus language for the whole ledger: an ink rule, offset off the paper. */
+:focus-visible {
+  outline: 2px solid var(--color-ink);
+  outline-offset: 2px;
+}
+
 .tabular { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+/* Scoreboard digits: the departure-board face, for settled numbers only. */
+.flap { font-family: var(--font-flap); font-variant-numeric: tabular-nums; }
+
+/* Inline code reads as set matter, not body prose. Block <pre> styles itself. */
+:not(pre) > code { background: var(--color-paper-3); padding: 0.05em 0.3em; font-size: 0.92em; }
+
+/* The rulebook opens like a column: one drop cap, Newsreader at display size. */
+.dropcap::first-letter {
+  float: left;
+  font-size: 3.2em;
+  line-height: 0.85;
+  padding: 0.04em 0.08em 0 0;
+  font-weight: 700;
+}
+
+/* Sections surfacing as the reader reaches them — CSS scroll-driven, no JS.
+   Browsers without animation-timeline simply show everything, which is fine. */
+@supports (animation-timeline: view()) {
+  .sec-reveal {
+    animation: sec-reveal 1ms linear both;
+    animation-timeline: view();
+    animation-range: entry 0% entry 28%;
+  }
+  @keyframes sec-reveal { from { opacity: 0.15; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+}
 
 .rule-double { border-top: 3px double var(--color-ink); }
 
@@ -32,8 +94,8 @@ body {
   display: inline-block;
   border: 2px solid var(--color-stamp);
   color: var(--color-stamp);
-  padding: 0 0.4rem;
-  font-family: var(--font-mono);
+  padding: 0.1rem 0.4rem 0;
+  font-family: var(--font-flap);
   font-size: 0.7rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -77,7 +139,14 @@ body {
 .typewriter-cursor { animation: cursor-blink 0.9s step-end infinite; }
 @keyframes cursor-blink { 50% { opacity: 0; } }
 
+/* Rows filing into the table, top to bottom, once. Set --row-i per row. */
+.row-enter {
+  animation: row-enter 0.4s cubic-bezier(0.23, 1, 0.32, 1) both;
+  animation-delay: calc(var(--row-i, 0) * 35ms);
+}
+@keyframes row-enter { from { opacity: 0; transform: translateY(4px); } }
+
 @media (prefers-reduced-motion: reduce) {
-  .stamp-slam, .shine-gold, .typewriter-cursor { animation: none; }
+  .stamp-slam, .shine-gold, .typewriter-cursor, .row-enter, .sec-reveal { animation: none; }
   .shine-gold { background: none; color: var(--color-ink); }
 }
