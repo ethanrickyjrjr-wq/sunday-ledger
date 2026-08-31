@@ -98,8 +98,9 @@ function Masthead({ current }: { current: Week | NoWeek | null }) {
       </p>
       <h1 className="mt-2 text-5xl font-bold sm:text-7xl">The Sunday Ledger</h1>
       <p className="mx-auto mt-4 max-w-xl text-lg italic text-ink-dim">
-        &ldquo;Anyone can call a winner Sunday night. The Ledger remembers what you said on
-        Wednesday.&rdquo;
+        &ldquo;From the AFC to the NFC, anyone can call a winner Sunday night. The Ledger
+        remembers what you said on Wednesday &mdash; before the injuries, before the
+        weather, before it was easy.&rdquo;
       </p>
       {w && (
         <p className="tabular mt-4 text-sm">
