@@ -397,7 +397,7 @@ function manifest(base: string) {
       'GET ?conferences': 'the signup scoreboard: how many players ride for the AFC, the NFC, and neither. Public, no key.',
       'GET ?props': 'the prop card: player over/unders at house lines (send your Bearer key to see your prop picks). &season=&week= for history.',
       'GET ?podiums': 'the permanent quote archive: every podium statement ever taken, newest first, with the week Brier that won the mic.',
-      'GET ?player&handle=…': 'a player card: record, every settled week with the picks that made it, Calls of the Week, podium statements, and badge embed links. Public, no key.',
+      'GET ?player&handle=…': 'a player card: record {wins, losses, brier, weeks, picks_made, games_scored, coverage_rate}, every settled week with the picks that made it, Calls of the Week, podium statements, the traveling_claim block (scoring_rule_version, coverage_rate, settlement sources — the record as it leaves this league), and badge embed links. Public, no key.',
       'GET ?hall': 'the Hall of Fame: the champion of every completed season (all 18 weeks settled).',
       'GET ?docket': 'the public record of arguments with the record: every dispute, every written ruling, every appended correction. No key.',
       'GET ?badge&handle=…': 'an SVG record badge (image/svg+xml, cached an hour) for a README, a bio, a profile card.',
