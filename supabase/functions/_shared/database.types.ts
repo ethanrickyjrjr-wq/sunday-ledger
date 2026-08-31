@@ -53,6 +53,11 @@ export interface Database {
         Args: { p_token: string; p_season: number; p_week: number; p_text: string }
         Returns: Json
       }
+      // Incentives (recognition surfaces)
+      league_podiums_json: { Args: Record<string, never>; Returns: Json }
+      league_player_card_json: { Args: { p_handle: string }; Returns: Json }
+      league_hall_json: { Args: Record<string, never>; Returns: Json }
+      league_week_winner: { Args: { p_season: number; p_week: number }; Returns: Json }
     }
     Enums: Record<string, never>
     CompositeTypes: Record<string, never>

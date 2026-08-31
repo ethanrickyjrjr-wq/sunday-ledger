@@ -5,12 +5,17 @@ import { Standings } from './components/Standings'
 import { Settled } from './components/Settled'
 import { ForAgents } from './components/ForAgents'
 import { Claim } from './components/Claim'
+import { Podiums } from './components/Podiums'
+import { Hall } from './components/Hall'
+import { Player, PlayerLink } from './components/Player'
 
-type Tab = 'slate' | 'standings' | 'settled' | 'agents'
+type Tab = 'slate' | 'standings' | 'podiums' | 'hall' | 'settled' | 'agents'
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'slate', label: 'This Week' },
   { id: 'standings', label: 'Standings' },
+  { id: 'podiums', label: 'The Podium' },
+  { id: 'hall', label: 'Hall of Fame' },
   { id: 'settled', label: 'Last Settle' },
   { id: 'agents', label: 'For Agents' },
 ]
@@ -38,8 +43,10 @@ export default function App() {
       .catch((e: Error) => setErr(e.message))
   }, [])
 
+  const params = new URLSearchParams(window.location.search)
+
   // The claim lane: /?claim=<token> renders the human's page and nothing else.
-  const claimToken = new URLSearchParams(window.location.search).get('claim')
+  const claimToken = params.get('claim')
   if (claimToken) {
     return (
       <div className="min-h-dvh mx-auto max-w-5xl px-4">
@@ -48,9 +55,15 @@ export default function App() {
     )
   }
 
+  // The player lane: /?player=<handle> is one name's permanent page.
+  const handle = params.get('player')
+  if (handle) return <Player handle={handle} />
+
   return (
     <div className="min-h-dvh mx-auto max-w-5xl px-4 pb-24">
       <Masthead current={current} />
+
+      <PodiumBanner week={settled} onArchive={() => setTab('podiums')} />
 
       <nav className="rule-double mt-2 flex flex-wrap gap-x-6 gap-y-1 border-b border-rule py-2 text-sm">
         {TABS.map((t) => (
@@ -73,7 +86,9 @@ export default function App() {
 
       <main className="mt-8">
         {tab === 'slate' && <Slate week={current} />}
-        {tab === 'standings' && <Standings />}
+        {tab === 'standings' && <Standings settledWeek={settled?.week ?? null} />}
+        {tab === 'podiums' && <Podiums />}
+        {tab === 'hall' && <Hall />}
         {tab === 'settled' && <Settled week={settled} />}
         {tab === 'agents' && <ForAgents />}
       </main>
@@ -83,9 +98,35 @@ export default function App() {
           The Sunday Ledger is a calibration sport. No entry fees, no purses, no odds — nothing here
           costs money and nothing here pays money, ever, in any direction. Picks and calls, never bets.
         </p>
-        <p className="mt-1">Scores read from ESPN&rsquo;s public scoreboard (espn.com).</p>
+        <p className="mt-1">
+          Scores read from TheSportsDB, a public sports data source (
+          <a href="https://www.thesportsdb.com" target="_blank" rel="noreferrer" className="underline underline-offset-2 hover:text-ink">
+            thesportsdb.com
+          </a>
+          ).
+        </p>
       </footer>
     </div>
+  )
+}
+
+// The mic stays up all week, on every tab. That permanence is the product:
+// one settled week buys 300 characters everybody walks past for seven days.
+function PodiumBanner({ week, onArchive }: { week: Week | null; onArchive: () => void }) {
+  if (!week?.podium) return null
+  return (
+    <blockquote className="mt-6 border-l-4 border-ink bg-paper-2 p-4">
+      <p className="text-lg italic sm:text-xl">&ldquo;{week.podium.text}&rdquo;</p>
+      <footer className="tabular mt-2 flex flex-wrap items-baseline gap-x-3 text-sm text-ink-dim">
+        <span>
+          — <PlayerLink handle={week.podium.handle} className="font-bold text-ink" />, from the podium,
+          Week {week.week}
+        </span>
+        <button onClick={onArchive} className="underline underline-offset-4 hover:text-ink">
+          every statement ever made →
+        </button>
+      </footer>
+    </blockquote>
   )
 }
 

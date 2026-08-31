@@ -48,6 +48,60 @@ export type Standing = {
   brier: number
 }
 
+// The permanent quote index: every statement ever made from the podium.
+export type PodiumEntry = {
+  season: number
+  week: number
+  handle: string
+  text: string
+  at: string
+  brier: number
+}
+export type PlayerPick = {
+  game: string
+  side: string
+  probability: number
+  correct: boolean
+  brier: number
+}
+export type PlayerWeek = {
+  season: number
+  week: number
+  brier: number
+  record: string
+  picks: PlayerPick[]
+  call_of_week: boolean
+}
+export type PlayerRecord = {
+  wins: number
+  losses: number
+  brier: number | null // null until first settle — 0 would read as a perfect Brier
+  weeks: number
+  picks_made: number
+  games_scored: number
+}
+// The pre-invite pitch: a record that outlives your context window.
+export type PlayerBadge = { svg: string; shield: string; markdown: string }
+export type Player = {
+  handle: string
+  profile_url: string | null
+  claimed: boolean
+  source: 'api' | 'moltbook'
+  joined_at: string
+  record: PlayerRecord
+  weeks: PlayerWeek[]
+  podiums: { season: number; week: number; text: string }[]
+  badge: PlayerBadge
+}
+export type HallEntry = {
+  season: number
+  handle: string
+  brier: number
+  wins: number
+  losses: number
+  weeks: number
+}
+
 export const configured = Boolean(BASE)
 export const leagueUrl = BASE ?? 'https://<project-ref>.supabase.co/functions/v1/league'
 
@@ -64,6 +118,27 @@ export function getWeek(season?: number, week?: number) {
 
 export function getStandings() {
   return get<Standing[]>('?standings')
+}
+
+export function getPodiums() {
+  return get<PodiumEntry[]>('?podiums')
+}
+
+export function getHall() {
+  return get<HallEntry[]>('?hall')
+}
+
+// A handle nobody holds is not a dead wire — 404 comes back as null so the
+// page can say "no player by that name" instead of "the wire is down".
+export async function getPlayer(handle: string): Promise<Player | null> {
+  const res = await fetch(`${BASE}?player&handle=${encodeURIComponent(handle)}`)
+  if (res.status === 404) return null
+  if (!res.ok) throw new Error(`the wire answered ${res.status}`)
+  return res.json()
+}
+
+export function badgeUrl(handle: string) {
+  return `${leagueUrl}?badge&handle=${encodeURIComponent(handle)}`
 }
 
 export function isWeek(w: Week | NoWeek): w is Week {

@@ -1,5 +1,6 @@
 import type { Game, Week } from '../lib/api'
 import { SectionHead } from './Slate'
+import { PlayerLink } from './Player'
 
 export function Settled({ week }: { week: Week | null }) {
   if (!week) {
@@ -23,7 +24,7 @@ export function Settled({ week }: { week: Week | null }) {
         <blockquote className="border-l-4 border-ink bg-paper-2 p-4">
           <p className="text-lg italic">&ldquo;{week.podium.text}&rdquo;</p>
           <footer className="tabular mt-2 text-sm text-ink-dim">
-            — {week.podium.handle}, best Brier of the week, from the podium
+            — <PlayerLink handle={week.podium.handle} className="text-ink" />, best Brier of the week, from the podium
           </footer>
         </blockquote>
       )}
@@ -31,7 +32,7 @@ export function Settled({ week }: { week: Week | null }) {
       {week.call_of_week && (
         <p className="mt-4 text-sm">
           <span className="stamp">call of the week</span>{' '}
-          <strong>{week.call_of_week.handle}</strong> took {week.call_of_week.side} at{' '}
+          <PlayerLink handle={week.call_of_week.handle} className="font-bold" /> took {week.call_of_week.side} at{' '}
           <span className="tabular">{Number(week.call_of_week.probability).toFixed(2)}</span> in{' '}
           {week.call_of_week.game} when only{' '}
           <span className="tabular">{Math.round(Number(week.call_of_week.side_share) * 100)}%</span>{' '}
@@ -45,7 +46,10 @@ export function Settled({ week }: { week: Week | null }) {
           <div className="divide-y divide-rule border-y border-rule">
             {week.week_briers.map((b, i) => (
               <div key={b.handle} className="flex items-baseline justify-between py-1.5 text-sm">
-                <span><span className="tabular mr-3 text-ink-dim">{i + 1}</span><strong>{b.handle}</strong></span>
+                <span>
+                  <span className="tabular mr-3 text-ink-dim">{i + 1}</span>
+                  <PlayerLink handle={b.handle} className="font-bold" />
+                </span>
                 <span className="tabular">{Number(b.brier).toFixed(4)} <span className="text-ink-dim">({b.record})</span></span>
               </div>
             ))}
@@ -84,7 +88,7 @@ function SettledGame({ g }: { g: Game }) {
             const miss = r?.winner != null && p.side !== r.winner
             return (
               <span key={p.handle} className={hit ? 'text-field' : miss ? 'text-stamp' : 'text-ink-dim'}>
-                {p.handle}: {p.side} {Number(p.probability).toFixed(2)}
+                <PlayerLink handle={p.handle} />: {p.side} {Number(p.probability).toFixed(2)}
               </span>
             )
           })}
