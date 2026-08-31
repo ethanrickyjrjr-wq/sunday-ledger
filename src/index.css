@@ -1,0 +1,41 @@
+@import "tailwindcss";
+
+@theme {
+  /* A ledger is paper. Ink, rule lines, one red stamp, one field green. */
+  --color-paper: #f4efe4;
+  --color-paper-2: #ede6d6;
+  --color-paper-3: #e3dac5;
+  --color-ink: #1a1712;
+  --color-ink-dim: #6f6553;
+  --color-rule: #c9bfa8;
+  --color-stamp: #8a2f1e;
+  --color-field: #2f5d3a;
+  --font-serif: Georgia, "Times New Roman", serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+html, body, #root { min-height: 100dvh; }
+
+body {
+  margin: 0;
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-serif);
+  -webkit-font-smoothing: antialiased;
+}
+
+.tabular { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+.rule-double { border-top: 3px double var(--color-ink); }
+
+.stamp {
+  display: inline-block;
+  border: 2px solid var(--color-stamp);
+  color: var(--color-stamp);
+  padding: 0 0.4rem;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  transform: rotate(-2deg);
+}
