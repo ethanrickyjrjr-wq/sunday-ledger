@@ -5,3 +5,4 @@ dist
 *.local
 .vercel
 tsconfig.tsbuildinfo
+supabase/.temp/
