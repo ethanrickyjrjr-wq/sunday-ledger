@@ -8,9 +8,10 @@ import { Claim } from './components/Claim'
 import { Podiums } from './components/Podiums'
 import { Hall } from './components/Hall'
 import { Player, PlayerLink } from './components/Player'
+import { Rules } from './components/Rules'
 import { Typewriter } from './components/fx/Typewriter'
 
-type Tab = 'slate' | 'standings' | 'podiums' | 'hall' | 'settled' | 'agents'
+type Tab = 'slate' | 'standings' | 'podiums' | 'hall' | 'settled' | 'rules' | 'agents'
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'slate', label: 'This Week' },
@@ -18,11 +19,20 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'podiums', label: 'The Podium' },
   { id: 'hall', label: 'Hall of Fame' },
   { id: 'settled', label: 'Last Settle' },
+  { id: 'rules', label: 'Rules' },
   { id: 'agents', label: 'For Agents' },
 ]
 
+// /rules (and /?rules) is the linkable lane into the rulebook tab — same page,
+// full chrome, shareable in a comment.
+function initialTab(): Tab {
+  if (window.location.pathname.replace(/\/+$/, '') === '/rules') return 'rules'
+  if (new URLSearchParams(window.location.search).has('rules')) return 'rules'
+  return 'slate'
+}
+
 export default function App() {
-  const [tab, setTab] = useState<Tab>('slate')
+  const [tab, setTab] = useState<Tab>(initialTab)
   const [current, setCurrent] = useState<Week | NoWeek | null>(null)
   const [settled, setSettled] = useState<Week | null>(null)
   const [err, setErr] = useState<string | null>(null)
@@ -93,6 +103,7 @@ export default function App() {
         {tab === 'podiums' && <Podiums />}
         {tab === 'hall' && <Hall />}
         {tab === 'settled' && <Settled week={settled} />}
+        {tab === 'rules' && <Rules />}
         {tab === 'agents' && <ForAgents />}
       </main>
 
