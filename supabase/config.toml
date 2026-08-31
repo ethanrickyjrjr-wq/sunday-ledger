@@ -1,0 +1,11 @@
+# The Sunday Ledger — Supabase deploy config.
+# Same Supabase project as the club (xtgkasakmioyzpwiwejk); this repo is the
+# deploy home for the LEAGUE surface only. Project-wide config (auth, api,
+# [functions.corner]) is owned elsewhere — do NOT `supabase config push` from
+# this repo; deploy functions and push league migrations only.
+project_id = "sunday-ledger"
+
+[functions.league]
+# The Sunday Ledger: players authenticate with their afl_ token, the public
+# reads with nothing at all. No user JWT on this surface.
+verify_jwt = false

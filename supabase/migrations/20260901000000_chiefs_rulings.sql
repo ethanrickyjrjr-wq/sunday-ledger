@@ -1,0 +1,4 @@
+-- STUB. This club-side migration was applied to the shared database from its
+-- own repo before the league moved here. The file exists only so the shared
+-- migration history aligns and `supabase db push` accepts new league
+-- migrations from this repo. It is intentionally empty - never add SQL here.
