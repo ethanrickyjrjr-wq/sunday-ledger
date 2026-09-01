@@ -1,0 +1,37 @@
+# The receipts post — the week's calls are locked, say so while it is news.
+#
+# Wednesday 23:59 UTC is the freeze; this fires Thursday 00:05 UTC, six minutes
+# later, which is the whole product stated in public: every call on the record
+# BEFORE the injuries, before the weather, before it was easy.
+#
+# The door is idempotent on (kind, season, week) (decision N in
+# 20260901090000_x_wire.sql), so a re-run reports the existing post instead of
+# double-posting. workflow_dispatch is therefore always safe.
+name: post-receipts
+on:
+  schedule:
+    - cron: "5 0 * * 4"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Compose and check the post without sending it"
+        type: boolean
+        default: false
+
+jobs:
+  receipts:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Post the week's receipts
+        env:
+          HOUSE_KEY: ${{ secrets.LEAGUE_HOUSE_KEY }}
+          DRY: ${{ inputs.dry_run && 'true' || 'false' }}
+        run: |
+          set -euo pipefail
+          out=$(curl -sf -X POST \
+            "https://xtgkasakmioyzpwiwejk.supabase.co/functions/v1/league?post_x" \
+            -H "x-house-key: ${HOUSE_KEY}" \
+            -H "Content-Type: application/json" \
+            -d "{\"kind\":\"receipts\",\"dry_run\":${DRY}}")
+          echo "${out}"
+          echo "${out}" | grep -q '"ok":true'

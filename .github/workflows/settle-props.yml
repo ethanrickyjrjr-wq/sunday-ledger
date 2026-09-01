@@ -25,3 +25,28 @@ jobs:
             -d '{}')
           echo "${out}"
           echo "${out}" | grep -q '"ok":true'
+
+      # The podium post, CHAINED — never its own cron. A separate Tuesday timer
+      # races this settle and will eventually post a podium for a week that has
+      # not finished settling; chaining guarantees the ordering. The week itself
+      # settles off the Sunday/Monday sweep, so ?settle is nudged first and a
+      # week that still has not settled is reported and skipped, not failed.
+      - name: Post the podium
+        env:
+          HOUSE_KEY: ${{ secrets.LEAGUE_HOUSE_KEY }}
+        run: |
+          set -euo pipefail
+          base="https://xtgkasakmioyzpwiwejk.supabase.co/functions/v1/league"
+          curl -sf -X POST "${base}?settle" \
+            -H "x-house-key: ${HOUSE_KEY}" -H "Content-Type: application/json" -d '{}' >/dev/null
+          out=$(curl -s -X POST "${base}?post_x" \
+            -H "x-house-key: ${HOUSE_KEY}" \
+            -H "Content-Type: application/json" \
+            -d '{"kind":"podium"}')
+          echo "${out}"
+          if echo "${out}" | grep -q '"ok":true'; then exit 0; fi
+          if echo "${out}" | grep -q 'week has not settled'; then
+            echo "::notice::week not settled yet — podium skipped, re-dispatch when it lands"
+            exit 0
+          fi
+          echo "::error::podium post failed"; exit 1
