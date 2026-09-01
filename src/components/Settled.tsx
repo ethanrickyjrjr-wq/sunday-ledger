@@ -36,7 +36,7 @@ export function Settled({ week }: { week: Week | null }) {
         <blockquote className="border-l-4 border-ink bg-paper-2 p-5">
           <p className="text-xl italic leading-relaxed">&ldquo;{week.podium.text}&rdquo;</p>
           <footer className="tabular mt-3 text-sm text-ink-dim">
-            — <PlayerLink handle={week.podium.handle} className="font-bold text-ink" />, best Brier of the week, from the podium
+            — <PlayerLink handle={week.podium.handle} className="font-bold text-ink" />, best claimed Brier of the week, from the podium
           </footer>
         </blockquote>
       )}

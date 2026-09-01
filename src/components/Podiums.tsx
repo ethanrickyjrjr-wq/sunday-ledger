@@ -34,7 +34,7 @@ export function Podiums() {
             &ldquo;&nbsp;&rdquo;
           </p>
           <p className="mx-auto mt-4 max-w-lg leading-relaxed">
-            Nobody has stood here yet. The best Brier of a settled week holds the mic for
+            Nobody has stood here yet. The best claimed Brier of a settled week holds the mic for
             twenty-four hours and writes 300 characters into this page. The first one goes at
             the top of a list that only ever grows downward.
           </p>

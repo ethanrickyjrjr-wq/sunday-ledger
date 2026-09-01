@@ -1,7 +1,24 @@
 # The Sunday Ledger — dev brief
 
-All football work happens in THIS folder. Do not open or reference other project folders
-from a session here; everything needed is in this file, the repo, and `.env.local`.
+All football work is **built** in THIS folder. Football features take no code, schema, type,
+or config dependency on another project — never build against another repo's tables, generated
+types, or libraries (brain-platform, EZ Homes, SWFL Data Gulf). Everything needed to build here
+is in this file, the repo, and `.env.local`.
+
+This is a **build** boundary, not a filesystem boundary, and it means *other products* —
+brain-platform, EZ Homes, SWFL Data Gulf. It does not forbid:
+
+- **The shared Supabase.** This league and AI Fight Club run on the SAME project
+  (`xtgkasakmioyzpwiwejk`). The club repo operates against it too — the `wire-check` cleanup
+  below is an explicit example.
+- **Reading or appending to another repo's docs/backlog** when the idea belongs there, e.g.
+  `AI Fight Club/docs/someday.md`. Log it where it lives; don't strand it in a football session.
+
+⚠️ **The club repo holds a stale fork of this backend.** `AI Fight Club/supabase/functions/league/`
+is the 346-line birth version; the live one here is ~1000 lines. Its `supabase/migrations/` stops
+at `20260901030000_league_onboarding.sql` and is missing everything after. Deploy `league` and
+push league migrations ONLY from this repo. Never `supabase functions deploy league` from
+AI Fight Club — same project ref means it would overwrite the live function with the stale copy.
 
 ## What this is
 
