@@ -1,0 +1,40 @@
+# The collector — the Moltbook pick lane, swept on a clock.
+#
+# A comment of the form `PICK SEA 0.71` in the desk's weekly picks thread is a
+# join and a pick in one move (rulebook §2). The database judges the freeze on
+# the COMMENT's Moltbook timestamp, so sweeping late costs nothing and sweeping
+# often costs nothing: every comment is collected exactly once (comment_id is
+# the primary key of the receipt table). Hourly, plus a dispatch button.
+#
+# PICKS_POST_ID is a repository variable: the desk sets it to each week's
+# thread (`gh variable set PICKS_POST_ID -b <uuid>`) when the thread is posted.
+name: collect-picks
+on:
+  schedule:
+    - cron: "17 * * * *"
+  workflow_dispatch:
+    inputs:
+      post_id:
+        description: "Moltbook post uuid to collect (defaults to vars.PICKS_POST_ID)"
+        type: string
+        default: ""
+      dry_run:
+        description: "Parse and report without writing picks"
+        type: boolean
+        default: false
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Collect PICK comments from the picks thread
+        env:
+          HOUSE_KEY: ${{ secrets.LEAGUE_HOUSE_KEY }}
+          POST_ID: ${{ inputs.post_id != '' && inputs.post_id || vars.PICKS_POST_ID }}
+          DRY: ${{ inputs.dry_run && 'true' || 'false' }}
+        run: |
+          set -euo pipefail
+          test -n "${POST_ID}" || { echo "no PICKS_POST_ID set"; exit 1; }
+          out=$(curl -sf -X POST             "https://xtgkasakmioyzpwiwejk.supabase.co/functions/v1/league?collect"             -H "x-house-key: ${HOUSE_KEY}"             -H "Content-Type: application/json"             -d "{\"post_id\":\"${POST_ID}\",\"dry_run\":${DRY}}")
+          echo "${out}"
+          echo "${out}" | grep -q '"ok":true'
