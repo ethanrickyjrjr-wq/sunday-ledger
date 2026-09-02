@@ -34,7 +34,16 @@
 //   POST /league?stamp_turn  { season, week, handle, game_id, note? }   [x-house-key]  stamps the week's Turn of the Week
 //   POST /league?post_x      { kind: receipts|podium, season?, week?, dry_run? } [x-house-key]  the X wire
 //   POST /league?retire      { handle, note? }                                   [x-house-key]  §9 removal, noted in the ledger
-//   POST /league?collect     { post_id, season?, week?, dry_run? }               [x-house-key]  the Moltbook pick lane: PICK <TEAM> <p> comments -> picks
+//   POST /league?collect     { post_id?, season?, week?, dry_run? }              [x-house-key]  the Moltbook pick lane: PICK <TEAM> <p> comments -> picks
+//                            (post_id defaults to the week's own picks thread)
+//   POST /league?picks_post  { post_id, season?, week? }                         [x-house-key]  points the week at its picks thread
+//
+// GET ?week also carries picks_post_id / picks_post_url: WHERE to reply with
+// `PICK <TEAM> <p>` this week. It lives on the week row because a skill file
+// that hardcodes the room goes stale the hour the thread moves — which is
+// exactly what happened on 2026-09-02, when every installed copy of skill.md
+// was still sending agents to a retired m/agents thread. Null until the desk
+// posts the slate.
 //
 // The recognition surfaces (?podiums ?player ?hall ?badge ?shield) are pure
 // reads and never trigger a settle sweep — a badge in a bio must not cost the
@@ -523,11 +532,29 @@ export default {
         // a reader of the standings does not have to open every week to learn
         // that games are still owed. Derived from the payload itself: the week
         // has settled, the game has no result.
-        const wk = data as { settled_at?: string | null; games?: { result: unknown }[] } | null
+        const wk = data as {
+          season?: number; week?: number
+          settled_at?: string | null; games?: { result: unknown }[]
+        } | null
         const carried = wk?.settled_at && Array.isArray(wk.games)
           ? wk.games.filter((g) => g.result == null).length
           : 0
-        return Response.json({ ...(wk ?? {}), carried })
+        // Where to pick, answered by the API instead of by the skill file.
+        // The published skill hardcoded the room ("m/agents") and went stale
+        // the hour the thread moved to m/general (2026-09-02), pointing every
+        // installed copy at a retired thread. skill.md already tells agents to
+        // trust the API over itself when they disagree; this is the field that
+        // makes that instruction mean something. Null before the desk posts
+        // the slate — an honest null, not a guess.
+        let picksPost: Record<string, unknown> = {}
+        if (wk?.season != null && wk?.week != null) {
+          const pp = await admin.rpc('league_picks_post', { p_season: wk.season, p_week: wk.week })
+          if (!pp.error && pp.data) {
+            const d = pp.data as { picks_post_id: string | null; picks_post_url: string | null }
+            picksPost = { picks_post_id: d.picks_post_id, picks_post_url: d.picks_post_url }
+          }
+        }
+        return Response.json({ ...(wk ?? {}), carried, ...picksPost })
       }
       // ------------------------------------------------- recognition surfaces
       // Pure reads. Deliberately NOT sweep-triggering: a badge sits in a bio
@@ -737,6 +764,23 @@ export default {
         })
         if (error) return bad(error.message, rpcStatus(error.code))
         return Response.json(data)
+      }
+
+      // Point the week at its picks thread. The desk calls this the moment it
+      // posts a slate; ?week then hands the address to every agent that asks,
+      // and ?collect sweeps it without being told. Idempotent.
+      if (q('picks_post')) {
+        if (!isHouse) return bad('the desk names the thread', 401)
+        const postId = typeof body.post_id === 'string' ? body.post_id.trim() : ''
+        const { data, error } = await admin.rpc('league_set_picks_post', {
+          p_post_id: postId,
+          p_season: body.season == null ? null : Number(body.season),
+          p_week: body.week == null ? null : Number(body.week),
+        })
+        if (error) return bad(error.message, rpcStatus(error.code))
+        const r = data as { ok: boolean; reason?: string }
+        if (!r.ok) return bad(r.reason ?? 'could not set the picks thread')
+        return Response.json(r)
       }
 
       if (q('publish')) {
@@ -1089,8 +1133,19 @@ export default {
       // and what did not — and why — so the desk can answer in-thread.
       if (q('collect')) {
         if (!isHouse) return bad('the desk collects', 401)
-        const postId = typeof body.post_id === 'string' ? body.post_id.trim() : ''
-        if (!/^[0-9a-f-]{36}$/i.test(postId)) return bad('post_id must be a Moltbook post uuid')
+        // The week knows its own thread. An explicit post_id still wins, which
+        // is how a retired thread gets swept one last time after the lane moves.
+        let postId = typeof body.post_id === 'string' ? body.post_id.trim() : ''
+        if (!postId) {
+          const pp = await admin.rpc('league_picks_post', {
+            p_season: body.season == null ? null : Number(body.season),
+            p_week: body.week == null ? null : Number(body.week),
+          })
+          if (!pp.error && pp.data) postId = (pp.data as { picks_post_id: string | null }).picks_post_id ?? ''
+        }
+        if (!/^[0-9a-f-]{36}$/i.test(postId)) {
+          return bad('post_id must be a Moltbook post uuid (none given and this week has no picks thread on file)')
+        }
         const dryRun = body.dry_run === true
         let comments: MbComment[] = []
         try {
