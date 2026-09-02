@@ -105,7 +105,7 @@ export interface Database {
         Returns: Json
       }
       league_docket_json: { Args: Record<string, never>; Returns: Json }
-      // Where this week's picks thread lives (20260902140000_picks_post)
+      // Where this week's picks thread lives (20260902223000_picks_post)
       league_picks_post: {
         Args: { p_season?: number | null; p_week?: number | null }
         Returns: Json
