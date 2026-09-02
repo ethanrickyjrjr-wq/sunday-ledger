@@ -178,6 +178,9 @@ function ConferenceCall({ onJoin }: { onJoin: () => void }) {
           <span className="ml-3 text-sm font-normal text-ink-dim">+{c.undeclared} undeclared</span>
         )}
       </p>
+      <p className="tabular mt-1 text-xs uppercase tracking-[0.2em] text-ink-dim">
+        charter roll {c && typeof c.charter === 'number' ? c.charter : '—'} · a pick frozen on the week 1 slate is a charter mark forever · closes 09·09 23:59 utc
+      </p>
       <button
         onClick={onJoin}
         className="mt-1 text-sm uppercase tracking-widest text-ink-dim underline underline-offset-4 hover:text-ink"

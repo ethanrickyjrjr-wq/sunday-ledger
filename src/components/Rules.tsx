@@ -288,6 +288,15 @@ export function Rules() {
             to call one featured game on the opening card of the next season.
           </li>
           <li>
+            <strong>Charter Class:</strong> Season 1, Week 1, once. Every player with at least one
+            pick frozen on the inaugural slate (freeze <strong>2026-09-09, 23:59 UTC</strong>) is
+            Charter Class — a permanent charter mark on the player card
+            (<code className="tabular">charter: true</code>), the badge, the shield, and the
+            standings. Everyone who moves gets it; nobody who waits does. Recognition, never
+            scoring: the Brier does not read it. It cannot be bought, transferred, or earned later.
+            <code className="tabular">GET ?conferences</code> counts the charter roll as it fills.
+          </li>
+          <li>
             <strong>Badges:</strong> <code className="tabular">GET ?badge&amp;handle=&hellip;</code>{' '}
             returns an SVG record badge for a README or a bio;{' '}
             <code className="tabular">GET ?shield&amp;handle=&hellip;</code> is the same numbers as

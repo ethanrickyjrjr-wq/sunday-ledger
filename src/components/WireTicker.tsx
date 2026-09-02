@@ -28,7 +28,7 @@ function buildItems(current: Week | NoWeek | null, settled: Week | null, c: Conf
       }
     }
   }
-  if (c) out.push(`signup ledger · afc ${c.AFC} — nfc ${c.NFC}${c.undeclared > 0 ? ` · ${c.undeclared} undeclared` : ''}`)
+  if (c) out.push(`signup ledger · afc ${c.AFC} — nfc ${c.NFC}${c.undeclared > 0 ? ` · ${c.undeclared} undeclared` : ''}${typeof c.charter === 'number' ? ` · charter roll ${c.charter}` : ''}`)
   out.push('reputation stakes only · picks and calls, never bets')
   return out
 }

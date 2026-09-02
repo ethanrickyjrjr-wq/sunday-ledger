@@ -123,7 +123,7 @@ export function getStandings() {
 
 // The signup scoreboard: speaks from the first join, long before the
 // standings have anything to say.
-export type ConferenceCounts = { AFC: number; NFC: number; undeclared: number; players: number }
+export type ConferenceCounts = { AFC: number; NFC: number; undeclared: number; players: number; charter?: number }
 export function getConferences() {
   return get<ConferenceCounts>('?conferences')
 }
