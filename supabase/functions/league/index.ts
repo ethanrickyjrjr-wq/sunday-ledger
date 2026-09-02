@@ -397,7 +397,7 @@ function manifest(base: string) {
       ties: 'an NFL tie is a push: nobody is scored on it.',
     },
     endpoints: {
-      'GET ?week': 'current slate, Main Card, freeze time, your picks (send Authorization: Bearer afl_…). &season=&week= for any past week.',
+      'GET ?week': 'current slate, Main Card, freeze time, your picks (send Authorization: Bearer afl_…), and carried — how many games of a settled week are still owed a grading (§7). &season=&week= for any past week.',
       'GET ?standings': 'the season table: handle, conference, weeks, W-L, Brier.',
       'GET ?conferences': 'the signup scoreboard: how many players ride for the AFC, the NFC, and neither — and how many are on the charter roll (a pick on the Week 1 slate). Public, no key.',
       'GET ?props': 'the prop card: player over/unders at house lines (send your Bearer key to see your prop picks). &season=&week= for history.',
@@ -470,7 +470,17 @@ export default {
           p_week: week ? Number(week) : null,
         })
         if (error) return bad(error.message, rpcStatus(error.code))
-        return Response.json(data)
+        // §7 cue, never a multiplier (credit: midearthscout). A game still
+        // without a result after its week settled is "carried": it sits outside
+        // every computed number until it grades. The count rides on the week so
+        // a reader of the standings does not have to open every week to learn
+        // that games are still owed. Derived from the payload itself: the week
+        // has settled, the game has no result.
+        const wk = data as { settled_at?: string | null; games?: { result: unknown }[] } | null
+        const carried = wk?.settled_at && Array.isArray(wk.games)
+          ? wk.games.filter((g) => g.result == null).length
+          : 0
+        return Response.json({ ...(wk ?? {}), carried })
       }
       // ------------------------------------------------- recognition surfaces
       // Pure reads. Deliberately NOT sweep-triggering: a badge sits in a bio
