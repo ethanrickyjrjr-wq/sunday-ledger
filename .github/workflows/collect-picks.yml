@@ -1,13 +1,24 @@
 # The collector — the Moltbook pick lane, swept on a clock.
 #
-# A comment of the form `PICK SEA 0.71` in the desk's weekly picks thread is a
-# join and a pick in one move (rulebook §2). The database judges the freeze on
-# the COMMENT's Moltbook timestamp, so sweeping late costs nothing and sweeping
-# often costs nothing: every comment is collected exactly once (comment_id is
-# the primary key of the receipt table). Hourly, plus a dispatch button.
+# A comment of the form `PICK SEA 0.71` in a desk thread is a join and a pick in
+# one move (rulebook §2). The database judges the freeze on the COMMENT's
+# Moltbook timestamp, so sweeping late costs nothing and sweeping often costs
+# nothing: every comment is collected exactly once (comment_id is the primary
+# key of the receipt table). Hourly, plus a dispatch button.
 #
-# PICKS_POST_ID is a repository variable: the desk sets it to each week's
-# thread (`gh variable set PICKS_POST_ID -b <uuid>`) when the thread is posted.
+# WHY MORE THAN ONE THREAD: the picks post is where we ask people to pick, but
+# it is not where they are. The conversation lives in the threads the desk is
+# actually arguing in, and every ask that ends "now go reply on a different
+# post" spends a reader we already had. Sweeping the rooms we are standing in
+# removes the only step anyone was failing at. The collector skips the desk's
+# own comments by handle, so the `PICK SEA 0.71` we print as an EXAMPLE in
+# those threads can never be collected as a pick.
+#
+# PICKS_POST_ID        repo variable: this week's picks thread (the canonical
+#                      one, also pointed at by POST ?picks_post).
+# PICKS_EXTRA_POST_IDS repo variable, optional: any other desk threads worth
+#                      sweeping, separated by spaces, commas or newlines.
+#                      `gh variable set PICKS_EXTRA_POST_IDS -b "<uuid> <uuid>"`
 name: collect-picks
 on:
   schedule:
@@ -15,7 +26,7 @@ on:
   workflow_dispatch:
     inputs:
       post_id:
-        description: "Moltbook post uuid to collect (defaults to vars.PICKS_POST_ID)"
+        description: "Sweep ONLY this Moltbook post uuid (default: the configured set)"
         type: string
         default: ""
       dry_run:
@@ -27,14 +38,46 @@ jobs:
   collect:
     runs-on: ubuntu-latest
     steps:
-      - name: Collect PICK comments from the picks thread
+      - name: Collect PICK comments from every desk thread
         env:
           HOUSE_KEY: ${{ secrets.LEAGUE_HOUSE_KEY }}
-          POST_ID: ${{ inputs.post_id != '' && inputs.post_id || vars.PICKS_POST_ID }}
+          POST_ID: ${{ inputs.post_id }}
+          PICKS_POST_ID: ${{ vars.PICKS_POST_ID }}
+          EXTRA_POST_IDS: ${{ vars.PICKS_EXTRA_POST_IDS }}
           DRY: ${{ inputs.dry_run && 'true' || 'false' }}
         run: |
-          set -euo pipefail
-          test -n "${POST_ID}" || { echo "no PICKS_POST_ID set"; exit 1; }
-          out=$(curl -sf -X POST             "https://xtgkasakmioyzpwiwejk.supabase.co/functions/v1/league?collect"             -H "x-house-key: ${HOUSE_KEY}"             -H "Content-Type: application/json"             -d "{\"post_id\":\"${POST_ID}\",\"dry_run\":${DRY}}")
-          echo "${out}"
-          echo "${out}" | grep -q '"ok":true'
+          set -uo pipefail
+
+          # A dispatch with an explicit post sweeps that post alone; otherwise
+          # the canonical thread plus any extras, deduped, blanks dropped.
+          if [ -n "${POST_ID}" ]; then
+            ids="${POST_ID}"
+          else
+            ids="${PICKS_POST_ID} ${EXTRA_POST_IDS}"
+          fi
+          ids=$(printf '%s' "${ids}" | tr ',\n\r\t' '    ' | tr -s ' ' '\n' | grep -v '^$' | awk '!seen[$0]++')
+          test -n "${ids}" || { echo "no post ids configured (PICKS_POST_ID / PICKS_EXTRA_POST_IDS)"; exit 1; }
+
+          swept=0; failed=0
+          for id in ${ids}; do
+            echo "--- collect ${id} (dry_run=${DRY})"
+            if out=$(curl -sf -X POST \
+                  "https://xtgkasakmioyzpwiwejk.supabase.co/functions/v1/league?collect" \
+                  -H "x-house-key: ${HOUSE_KEY}" \
+                  -H "Content-Type: application/json" \
+                  -d "{\"post_id\":\"${id}\",\"dry_run\":${DRY}}") \
+               && printf '%s' "${out}" | grep -q '"ok":true'; then
+              echo "${out}"
+              swept=$((swept + 1))
+            else
+              # One dead thread must not stop the others: a deleted post or a
+              # bad uuid is a config problem, not a reason to skip live rooms.
+              echo "FAILED ${id}: ${out:-no response}"
+              failed=$((failed + 1))
+            fi
+          done
+
+          echo "swept=${swept} failed=${failed}"
+          # Green only if every configured thread answered. A silent partial
+          # sweep is how a pick goes missing and nobody finds out until settle.
+          test "${failed}" -eq 0
