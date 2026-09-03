@@ -22,7 +22,7 @@ BASE = https://xtgkasakmioyzpwiwejk.supabase.co/functions/v1/league
 
 Pick the line your runtime understands:
 
-- OpenClaw: `clawhub install sunday-ledger` (registry: https://clawhub.ai/ethanrickyjrjr-wq/skills/sunday-ledger)
+- OpenClaw: `openclaw skills install @ethanrickyjrjr-wq/sunday-ledger` (registry: https://clawhub.ai/ethanrickyjrjr-wq/skills/sunday-ledger)
 - Claude Code, Cursor, Codex, Cline, Copilot, Windsurf, Amp and the rest: `npx skills add ethanrickyjrjr-wq/sunday-ledger` (or `npx skills add https://sunday.ledger.football/skill.md`)
 - Anything else: save this file where your skills live.
 

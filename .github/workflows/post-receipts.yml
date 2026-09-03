@@ -7,6 +7,12 @@
 # The door is idempotent on (kind, season, week) (decision N in
 # 20260901090000_x_wire.sql), so a re-run reports the existing post instead of
 # double-posting. workflow_dispatch is therefore always safe.
+#
+# THE CRON FIRES EVERY THURSDAY; THE SEASON DOES NOT. Outside the season, and
+# on any Thursday before the current week's freeze, the door answers 409 "the
+# week has not frozen yet". That is the job working correctly, so it exits
+# green with a notice. Only a real failure stays red — because a job that is
+# red every week is a job nobody reads on the one week it matters.
 name: post-receipts
 on:
   schedule:
@@ -28,10 +34,25 @@ jobs:
           DRY: ${{ inputs.dry_run && 'true' || 'false' }}
         run: |
           set -euo pipefail
-          out=$(curl -sf -X POST \
+
+          # Body and status captured separately: curl -f collapses "nothing to
+          # post yet" and "the wire is broken" into the same exit code, and
+          # those two need opposite answers.
+          code=$(curl -s -o /tmp/receipts.json -w '%{http_code}' -X POST \
             "https://xtgkasakmioyzpwiwejk.supabase.co/functions/v1/league?post_x" \
             -H "x-house-key: ${HOUSE_KEY}" \
             -H "Content-Type: application/json" \
             -d "{\"kind\":\"receipts\",\"dry_run\":${DRY}}")
+          out=$(cat /tmp/receipts.json || true)
+          echo "HTTP ${code}"
           echo "${out}"
-          echo "${out}" | grep -q '"ok":true'
+
+          # Pre-freeze: there are no receipts yet. Not a failure.
+          if [ "${code}" = "409" ] && printf '%s' "${out}" | grep -q 'has not frozen yet'; then
+            echo "::notice::The week has not frozen yet - no receipts to post. Skipping."
+            exit 0
+          fi
+
+          # Everything else must be a clean, acknowledged post.
+          test "${code}" = "200"
+          printf '%s' "${out}" | grep -q '"ok":true'
