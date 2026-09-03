@@ -32,7 +32,10 @@ export interface Database {
       fighter_answer_callout: { Args: { p_token: string; p_statement_id: number; p_ok: boolean }; Returns: Json }
       spectator_feed: { Args: { p_token: string }; Returns: Json }
       // The Sunday Ledger (league function)
-      league_join: { Args: { p_handle: string; p_profile_url: string }; Returns: Json }
+      league_join: {
+        Args: { p_handle: string; p_profile_url: string; p_conference?: string; p_via?: string }
+        Returns: Json
+      }
       league_claim: { Args: { p_claim_token: string; p_email: string }; Returns: Json }
       league_publish_week: {
         Args: { p_season: number; p_week: number; p_freeze_at: string; p_games: Json; p_main_card: string[] }
@@ -72,6 +75,8 @@ export interface Database {
       league_prop_weeks_unsettled: { Args: Record<string, never>; Returns: Json }
       // Conferences (the signup scoreboard)
       league_conference_counts: { Args: Record<string, never>; Returns: Json }
+      // Attribution (house-only): which door each player came through
+      league_joins_json: { Args: Record<string, never>; Returns: Json }
       // The Docket + Turn of the Week (record integrity)
       league_dispute_file: {
         Args: {

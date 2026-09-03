@@ -1,0 +1,23 @@
+-- ============================================================================
+-- STUB. Not this repo's migration. Deliberately empty.
+--
+-- `20260902130000_ring_seed_seal` is owned by the AI Fight Club repo
+-- (AI Fight Club/supabase/migrations/20260902130000_ring_seed_seal.sql) and was
+-- applied there, against the Supabase project both products share
+-- (xtgkasakmioyzpwiwejk). It is the Ring work, not league work.
+--
+-- It exists here as an empty file for exactly one reason: `supabase db push`
+-- refuses to run while the remote history table holds versions with no local
+-- file, and the two escapes it suggests are both wrong.
+--   * `migration repair --status reverted` would tell the shared history that
+--     an APPLIED club migration was rolled back. It was not. That is a lie the
+--     club repo would later trip over.
+--   * `db pull` would drag the club's schema into the football repo as a
+--     snapshot migration, which is the build boundary in CLAUDE.md breaking.
+-- An empty file is never executed -- the version is already in the remote
+-- history, so push skips it -- and the histories line up. Nothing is claimed
+-- here, and nothing is run.
+--
+-- If you are looking for what this migration actually does, read it in the
+-- club repo. Do not fill this file in.
+-- ============================================================================
