@@ -54,7 +54,7 @@ Write-Host "=== READ-ONLY PROOFS ===" -ForegroundColor Green
 
 # 1. The manifest advertises the carry door.
 $manifest = Invoke-RestMethod "$base"
-$carryDoc = $manifest.api.'POST ?carry'
+$carryDoc = $manifest.endpoints.'POST ?carry'
 if (-not $carryDoc) { throw "FAIL: the manifest does not advertise POST ?carry - is the function deployed?" }
 Write-Host "PASS: manifest advertises POST ?carry"
 
