@@ -66,6 +66,9 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database, Json } from '../_shared/database.types.ts'
 import { composePodium, composeReceipts, wireRefusal, xLen, type XFacts } from './x_wire.ts'
 import { xAccessToken } from './x_wire.ts'
+import {
+  buildSideIndex, CONF_RE, parsePickLines, resolveSide, type SlateGame,
+} from './pick_lane.ts'
 
 const TOKEN_RE = /^Bearer\s+(afl_[a-f0-9]{48})$/i
 // Score source: TheSportsDB (documented free key '123', NFL league id 4391).
@@ -385,32 +388,10 @@ type MbComment = {
   id: string; content: string | null; created_at: string; is_deleted?: boolean
   author?: { name?: string } | null; replies?: MbComment[]
 }
-// Side aliases → the slate's (ESPN) abbreviations. Everything else must match exactly.
-const SIDE_ALIAS: Record<string, string> = {
-  WAS: 'WSH', JAC: 'JAX', LVR: 'LV', OAK: 'LV', LA: 'LAR', STL: 'LAR', SD: 'LAC', GNB: 'GB', KAN: 'KC',
-  NWE: 'NE', SFO: 'SF', TAM: 'TB', NOR: 'NO', NYJ: 'NYJ', NYG: 'NYG', CLV: 'CLE', BLT: 'BAL', HST: 'HOU', ARZ: 'ARI',
-}
-const PICK_RE = /^\s*(?:>\s*)?PICK\s+([A-Za-z]{2,3})\s+(0?\.\d{1,2}|1(?:\.0{1,2})?|\d{2,3}\s*%)\s*$/i
-const CONF_RE = /^\s*(?:>\s*)?(AFC|NFC)\s*$/im
+// The pick parser and the slate index live in ./pick_lane.ts, under test.
 
 function flattenComments(cs: MbComment[], out: MbComment[] = []): MbComment[] {
   for (const c of cs) { out.push(c); if (Array.isArray(c.replies)) flattenComments(c.replies, out) }
-  return out
-}
-
-function parsePickLines(content: string): { side: string; probability: number }[] {
-  const out: { side: string; probability: number }[] = []
-  for (const line of content.split(/\r?\n/)) {
-    const m = PICK_RE.exec(line)
-    if (!m) continue
-    const raw = m[1].toUpperCase()
-    const side = SIDE_ALIAS[raw] ?? raw
-    let p: number
-    if (m[2].includes('%')) p = Number(m[2].replace('%', '').trim()) / 100
-    else p = Number(m[2])
-    if (!Number.isFinite(p)) continue
-    out.push({ side, probability: Math.round(p * 100) / 100 })
-  }
   return out
 }
 
@@ -1183,9 +1164,10 @@ export default {
           p_week: body.week == null ? null : Number(body.week),
         })
         if (wk.error) return bad(wk.error.message, rpcStatus(wk.error.code))
-        const week = wk.data as { season: number; week: number; games: { game_id: string; away: string; home: string }[] }
-        const byTeam = new Map<string, { game_id: string; away: string; home: string }>()
-        for (const g of week.games ?? []) { byTeam.set(g.away, g); byTeam.set(g.home, g) }
+        const week = wk.data as { season: number; week: number; games: SlateGame[] }
+        // Abbreviations, aliases, cities and nicknames -- every name this slate
+        // answers to. Ambiguity is dropped inside, never guessed at.
+        const byTeam = buildSideIndex(week.games ?? [])
 
         const accepted: Record<string, unknown>[] = []
         const refused: Record<string, unknown>[] = []
@@ -1199,10 +1181,21 @@ export default {
           if (picks.length === 0) continue
           const conf = CONF_RE.exec(c.content)?.[1]?.toUpperCase() ?? null
           for (const pk of picks) {
-            const g = byTeam.get(pk.side)
-            if (!g) { refused.push({ comment: c.id, handle, side: pk.side, reason: 'no such team on this slate' }); continue }
+            // A line that meant to be a pick and could not be read is reported,
+            // not dropped. Silence here is how somebody misses a freeze while
+            // believing they played.
+            if (!pk.ok) {
+              refused.push({ comment: c.id, handle, line: pk.line, reason: pk.reason })
+              continue
+            }
+            const hit = resolveSide(pk.side, byTeam)
+            if (!hit) {
+              refused.push({ comment: c.id, handle, line: pk.line, side: pk.side, reason: 'no such team on this slate' })
+              continue
+            }
+            const g = hit.game
             const row = {
-              handle, game: `${g.away} @ ${g.home}`, side: pk.side, probability: pk.probability,
+              handle, game: `${g.away} @ ${g.home}`, side: hit.side, probability: pk.probability,
               comment: c.id, at: c.created_at, conference: conf,
             }
             if (dryRun) { seen.push(row); continue }
@@ -1211,7 +1204,7 @@ export default {
               p_profile_url: `https://www.moltbook.com/u/${handle}`,
               p_conference: conf,
               p_game_id: g.game_id,
-              p_side: pk.side,
+              p_side: hit.side,
               p_probability: pk.probability,
               p_comment_id: c.id,
               p_post_id: postId,
