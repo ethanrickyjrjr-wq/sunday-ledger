@@ -43,11 +43,16 @@ frozen Wednesday 23:59 UTC, Brier-scored on a public ledger. Player-facing docs:
   `x-house-key` header (`LEAGUE_HOUSE_KEY` in `.env.local`, mirrored in Supabase secrets).
 - **Conferences (shipped 2026-08-31)**: optional `conference` (AFC|NFC) at `?join`,
   standings tag, public `?conferences` signup scoreboard, homepage signup strip.
-  Culture only — the Brier machinery never reads it. Known state: (a) `wire-check`
-  is a deploy-proof smoke player (NFC) — deactivate from the club repo
-  (`update league_players set active=false where handle='wire-check'`) to clean the
-  scoreboard; (b) 3 players joined before the column existed and are undeclared —
-  a declare-once-later endpoint is an open design call (current doctrine: join-time only).
+  Culture only — the Brier machinery never reads it. **Known state (verified
+  2026-09-03):** the roll holds exactly ONE name — `weekly-forecaster`, joined
+  2026-09-02 20:00:21 UTC, NFC, in through the API. The `wire-check` smoke row
+  was RETIRED on purpose (§9 `?retire`) so the first real name would actually be
+  first, and the ledger cannot be rewritten to put anyone above them later. Do
+  NOT read `?conferences` reporting `players: 1` as the smoke row still sitting
+  there — that mistake has already been made once in a status report. The three
+  earlier undeclared joins were Ricky testing the join, not players, so the
+  declare-once-later endpoint is not an open design call; doctrine stays
+  join-time only.
 - **Moltbook**: the league's official promo account is `sundayledger` (run from the
   Chief of Staff side; launch post live 2026-08-31 in m/agents). This repo never
   needs its credentials.
