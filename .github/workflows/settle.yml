@@ -1,0 +1,97 @@
+# The settle — nudged on a clock, and LOUD when the ledger is owed a result.
+#
+# Two things were wrong before this file existed.
+#
+# 1. Settlement had no independent clock. `?settle` was nudged exactly once a
+#    week, chained inside settle-props.yml at Tue 18:00 UTC, and otherwise the
+#    only thing that swept was a READ (`?week` / `?standings` pay a throttled
+#    toll). That is fine on a busy site. This league has one name on the roll.
+#    With no traffic, nobody's Sunday result appeared until Tuesday afternoon.
+#
+# 2. Nothing checked the outcome. `?settle` answers 200 whenever the sweep
+#    declines to act — gate not due, or a score source that returned 200 with
+#    a payload we could not parse — and the chained nudge threw the body away.
+#    A completely dead settlement read as a green week, indefinitely.
+#
+# So: hourly, and assert on HEALTH rather than on "did the call return". The
+# door now reports `ok:false` while any game is more than six hours past its
+# kickoff with no result and nobody carried it. Six hours, not three, so a long
+# game or one bad minute at TheSportsDB is not a page.
+#
+# THE BENIGN CASE IS GREEN, ON PURPOSE. No games due, nothing owed, the
+# offseason, a slate published but not yet kicked — all `ok:true`, all quiet.
+# post-receipts.yml states the doctrine this follows: "a job that is red every
+# week is a job nobody reads on the one week it matters."
+#
+# A POSTPONED GAME IS NOT A FAILURE. Carry it (`POST ?carry {game_id, note}`)
+# and it leaves `stuck`, appears under `carried`, and the week settles around
+# it — which is §7 working, not a workaround. That is the only correct way to
+# clear this alarm without a result: everything else means the ledger really is
+# missing a number it promised.
+name: settle
+on:
+  schedule:
+    - cron: "0 * * * *"
+  workflow_dispatch:
+    inputs:
+      season:
+        description: "Force a season (with week) instead of letting the gate choose"
+        type: string
+        default: ""
+      week:
+        description: "Force a week (with season)"
+        type: string
+        default: ""
+
+jobs:
+  settle:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sweep the score source and check what the ledger is owed
+        env:
+          HOUSE_KEY: ${{ secrets.LEAGUE_HOUSE_KEY }}
+          SEASON: ${{ inputs.season }}
+          WEEK: ${{ inputs.week }}
+        run: |
+          set -uo pipefail
+          base="https://xtgkasakmioyzpwiwejk.supabase.co/functions/v1/league"
+
+          body='{}'
+          if [ -n "${SEASON}" ] && [ -n "${WEEK}" ]; then
+            body="{\"season\":${SEASON},\"week\":${WEEK}}"
+          fi
+
+          # -f is deliberately NOT used: a 502 carries the score source's own
+          # message in the body, and that message is the whole point of the
+          # alarm. Capture the status separately instead of throwing it away.
+          out=$(curl -s -w '\n%{http_code}' -X POST "${base}?settle" \
+            -H "x-house-key: ${HOUSE_KEY}" \
+            -H "Content-Type: application/json" \
+            -d "${body}")
+          code=$(printf '%s' "${out}" | tail -n1)
+          json=$(printf '%s' "${out}" | sed '$d')
+          echo "HTTP ${code}"
+          echo "${json}"
+
+          if [ "${code}" != "200" ]; then
+            echo "::error::the settle door answered ${code} — the score source or the database is down. Body above."
+            exit 1
+          fi
+
+          # jq is preinstalled on ubuntu-latest. `ok` is computed server-side
+          # after the sweep attempt and outside the sweep's own return value,
+          # so no early exit inside it can launder a failure into a green run.
+          if [ "$(printf '%s' "${json}" | jq -r '.ok')" = "true" ]; then
+            carried=$(printf '%s' "${json}" | jq -r '.health.carried | length')
+            if [ "${carried}" != "0" ]; then
+              echo "::notice::${carried} game(s) carried under section 7 — outside every computed number until they grade"
+              printf '%s' "${json}" | jq -r '.health.carried[] | "  carried: \(.game) (week \(.week)) — \(.note)"'
+            fi
+            exit 0
+          fi
+
+          echo "::error::the ledger is owed a result nobody carried — settlement is stuck"
+          printf '%s' "${json}" | jq -r '.health.stuck[] | "  STUCK: \(.game) (season \(.season) week \(.week)) — \(.hours_overdue)h past kickoff, no result"'
+          echo "If a game was postponed, carry it: POST ?carry {\"game_id\":\"…\",\"note\":\"…\"} with the house key."
+          echo "If it was played, the score source is not telling us — check TheSportsDB before the next slate."
+          exit 1

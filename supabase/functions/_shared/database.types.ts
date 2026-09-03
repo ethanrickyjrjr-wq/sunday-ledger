@@ -115,6 +115,10 @@ export interface Database {
         Args: { p_season?: number | null; p_week?: number | null }
         Returns: Json
       }
+      // Carry + alarm (postponement made real, and the settle given a voice)
+      league_carry: { Args: { p_game_id: string; p_note: string }; Returns: Json }
+      league_settle_health: { Args: Record<string, never>; Returns: Json }
+      league_sweep_failed: { Args: { p_error: string }; Returns: undefined }
       league_set_picks_post: {
         Args: { p_post_id: string; p_season?: number | null; p_week?: number | null }
         Returns: Json

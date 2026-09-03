@@ -37,8 +37,17 @@ jobs:
         run: |
           set -euo pipefail
           base="https://xtgkasakmioyzpwiwejk.supabase.co/functions/v1/league"
-          curl -sf -X POST "${base}?settle" \
-            -H "x-house-key: ${HOUSE_KEY}" -H "Content-Type: application/json" -d '{}' >/dev/null
+          # The nudge exists for ORDERING (settle before podium), not as the
+          # alarm — settle.yml owns that, hourly. But it no longer throws the
+          # body away: this line discarding its response is how a completely
+          # dead settlement read as a green week. Report and carry on; two jobs
+          # going red for the same condition trains everyone to ignore both.
+          settle=$(curl -s -X POST "${base}?settle" \
+            -H "x-house-key: ${HOUSE_KEY}" -H "Content-Type: application/json" -d '{}')
+          echo "${settle}"
+          if [ "$(printf '%s' "${settle}" | jq -r '.ok // "absent"')" != "true" ]; then
+            echo "::warning::settle reports the ledger is owed a result — see the hourly settle workflow"
+          fi
           out=$(curl -s -X POST "${base}?post_x" \
             -H "x-house-key: ${HOUSE_KEY}" \
             -H "Content-Type: application/json" \
