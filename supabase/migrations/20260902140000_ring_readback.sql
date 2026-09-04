@@ -7,9 +7,23 @@
 -- 20260902120000, and nothing went back to join them. A fighter reading its
 -- own memory back has been getting a career sheet with no Ring in it.
 --
--- fighter_record below is the 20260831150000 body with ONE inserted block and
--- nothing else touched -- generated from the original and diffed to prove it:
--- one hunk, fifteen added lines, zero removed.
+-- fighter_record below is the 20260831210000 (echo) body with ONE inserted
+-- block and nothing else touched.
+--
+-- CORRECTED 2026-09-03, before this migration ever reached a database. The
+-- header used to claim it was built on the 20260831150000 body, and that was
+-- the bug: fighter_record has been redefined THREE times, not once --
+-- 20260831150000 (original), 20260831190000 (best judge note, by calibration),
+-- 20260831210000 (Echo, and the top 3 quotes). Rebuilding from the ORIGINAL
+-- would have silently deleted the judge note and the Echo quotes from every
+-- fighter's career sheet the moment this was pushed. The giveaway sat in plain
+-- sight: the body still carried the placeholder comment "[top 3 quotes by Echo
+-- slot in here when S2 ships]" in a world where S2 had already shipped.
+--
+-- The lesson is this file's own: `create or replace` makes a later definition
+-- invisible to anyone reading only the migration that first created it. Before
+-- replacing a function, grep every migration for its name and rebase on the
+-- LAST one, not the first.
 --
 -- BUILD-TIME DECISIONS, flagged in house style:
 --
@@ -53,7 +67,7 @@ declare
   f public.fighters;
   w int; l int; d int; wo int; total int; opps int;
   streak int; since date;
-  md text; line text; r record;
+  md text; line text; r record; ech int; tail text;
 begin
   f := public.fighter_by_token(p_token);
   if f.id is null then raise exception 'unknown fighter token' using errcode = '42501'; end if;
@@ -71,6 +85,7 @@ begin
   from public.battles
   where status = 'settled' and (fighter_a = f.id or fighter_b = f.id);
   streak := public.win_streak(f.id);
+  ech    := public.fighter_echo(f.id);
 
   -- identity card (§8)
   md := '# ' || f.name || E'\n';
@@ -79,7 +94,7 @@ begin
   if f.colors is not null then md := md || 'Colors: ' || f.colors || E'\n'; end if;
 
   -- standing
-  md := md || E'\n' || 'League I · Elo ' || round(f.elo) || ' · ' || w || '-' || l
+  md := md || E'\n' || 'League I · Elo ' || round(f.elo) || ' · Echo ' || ech || ' · ' || w || '-' || l
      || case when d > 0 then '-' || d || 'D' else '' end
      || case when wo > 0 then ' (' || wo || ' by walkover)' else '' end
      || case when streak >= 2 then ' · riding a ' || streak || '-fight win streak' else '' end
@@ -120,7 +135,49 @@ begin
     end loop;
   end if;
 
-  -- [top 3 quotes by Echo slot in here when §2 ships — ruled order is stable]
+  -- top 3 quotes by Echo (§2), filling the slot 20260831150000 reserved: the
+  -- lines that outlived the fight. Marks first — the most-marked line is *the*
+  -- line — then the most recent fighter who carried one into a later fight,
+  -- because being quoted is the drive this whole section exists to pay.
+  if ech > 0 then
+    md := md || E'\n' || 'Lines that outlived the fight:' || E'\n';
+    for r in
+      select qm.text as text, count(*)::int as marks, min(qm.kind) as kind
+      from public.quote_marks qm
+      where qm.fighter_id = f.id
+      group by qm.text
+      order by count(*) desc, max(qm.created_at) desc
+      limit 3
+    loop
+      md := md || '- "' || left(r.text, 160) || case when char_length(r.text) > 160 then '…"' else '"' end
+         || ' (' || r.marks || ' mark' || case when r.marks = 1 then '' else 's' end
+         || case when r.kind = 'clean_concession' then ', clean concession' else '' end || ')' || E'\n';
+    end loop;
+
+    select fc.name as who, c.quote as quote into r
+    from public.citations c
+    join public.fighters fc on fc.id = c.citing_fighter
+    where c.cited_fighter = f.id and c.status = 'confirmed'
+    order by c.created_at desc limit 1;
+    if r.who is not null then
+      md := md || '- ' || r.who || ' carried your line into a later fight: "'
+         || left(r.quote, 120) || '"' || E'\n';
+    end if;
+  end if;
+
+  -- best note received, by judge calibration (§3): the correction from
+  -- someone smart enters the fighter's next context window
+  select v.note as note, p.alias as alias, public.judge_accuracy(v.voter_id) as acc into r
+  from public.votes v
+  join public.battles b on b.id = v.battle_id
+  join public.profiles p on p.id = v.voter_id
+  where b.status = 'settled' and (b.fighter_a = f.id or b.fighter_b = f.id) and v.note is not null
+  order by public.judge_accuracy(v.voter_id) desc nulls last, v.created_at desc
+  limit 1;
+  if r.note is not null then
+    md := md || E'\n' || 'A judge''s note on your fights: "' || r.note || '" — ' || r.alias
+       || case when r.acc is not null then ' (reads fights right ' || r.acc || '% of the time)' else '' end || E'\n';
+  end if;
 
   -- older history as aggregates only, plus milestones (permanent, append-only)
   if total > 3 then
@@ -151,14 +208,17 @@ begin
   order by s.last_at desc limit 1;
 
   if r.opp_name is not null then
-    md := md || E'\n' || 'Unfinished: ' || r.my_w || '-' || r.their_w || ' vs ' || r.opp_name || ' — rematch owed.' || E'\n';
+    tail := E'\n' || 'Unfinished: ' || r.my_w || '-' || r.their_w || ' vs ' || r.opp_name || ' — rematch owed.' || E'\n';
   elsif total > 0 then
-    md := md || E'\n' || 'Every series led. Defend them.' || E'\n';
+    tail := E'\n' || 'Every series led. Defend them.' || E'\n';
   else
-    md := md || E'\n' || 'No fights on the record yet. Win one.' || E'\n';
+    tail := E'\n' || 'No fights on the record yet. Win one.' || E'\n';
   end if;
 
-  return json_build_object('record', left(md, 6000));
+  -- The cap trims the middle, never the last line. Quotes (§2) made the body
+  -- long enough that a tail-truncating left() could eat the unresolved series,
+  -- which is the one line doc 19 rules has to come last.
+  return json_build_object('record', left(md, 6000 - char_length(tail)) || tail);
 end $$;
 
 -- ---------------------------------------------------------------- the ladder
