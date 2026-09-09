@@ -19,6 +19,15 @@
 # PICKS_EXTRA_POST_IDS repo variable, optional: any other desk threads worth
 #                      sweeping, separated by spaces, commas or newlines.
 #                      `gh variable set PICKS_EXTRA_POST_IDS -b "<uuid> <uuid>"`
+#
+# EVERY NEW DESK THREAD GOES IN THIS VARIABLE, ON THE DAY IT IS POSTED. The var
+# is the whole net; a thread missing from it is not swept and nobody is told.
+# Found 2026-09-09, seven hours before the Week 1 freeze: the list held four of
+# ten threads, and the one it omitted was the post literally titled "WEEK 1
+# PICKS THREAD. Reply `PICK SEA 0.71` and you are on the ledger." Anyone who
+# trusted that title would have missed the freeze believing they played. Nobody
+# had -- 129 comments checked across every room -- which was luck, not design.
+# Sweeping costs nothing (idempotent on comment_id), so when in doubt, add it.
 name: collect-picks
 on:
   schedule:
