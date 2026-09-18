@@ -1,38 +1,66 @@
-# The slate alarm — the week that never got published is the week nobody plays.
+# The slate watch — ring for a human, then publish anyway rather than go dark.
 #
 # WHY THIS FILE EXISTS. Week 1 was published by hand on 2026-08-31 and nothing
 # has ever published a week since. There were four crons — collect, settle,
-# settle-props, post-receipts — and every one of them was downstream of a slate
+# settle-props, post-receipts — and every one of them is downstream of a slate
 # existing. So when Tuesday 2026-09-15 came and went with no Week 2, every job
 # stayed green: the collector swept threads for a week that wasn't there, the
-# settle correctly reported nothing owed, and the site served Week 1 for six
-# days while two players had nothing to pick. Found 2026-09-17, by the owner,
-# looking at the homepage. That is the failure this file makes impossible.
+# settle correctly reported nothing owed, and the site served a settled Week 1
+# for six days while three players had nothing to pick. It was found by the
+# owner, looking at the homepage. No job found it.
 #
-# WHY IT ALARMS INSTEAD OF PUBLISHING. `league_publish_week` writes `main_card`
-# once and there is no endpoint that can change it afterwards — the spotlight a
-# cron stamps is the spotlight forever. The obvious auto-rule (fewest games
-# sharing a kickoff = the national windows) picks JAX @ DEN and LV @ LAC over
-# WSH @ DAL on the very first week it was tried. A heuristic that cannot be
-# taken back is worse than a human being told to look, so this job is a
-# doorbell, not a door.
+# WHY IT DOES NOT JUST RING. The first cut of this file was an alarm only,
+# because league_publish_week writes main_card on insert and NOTHING can change
+# it afterwards (?correct is gradings only) — a cron that guesses the spotlight
+# guesses it permanently. That reasoning was right about the cost and wrong
+# about the comparison. The Main Card is culture: "score is identical
+# everywhere; the spotlight is not", and sl-brier-slate-v1 never reads it. So
+# the real trade is an imperfect spotlight on a week nobody reviewed, against
+# the league going dark for a week. Dark is worse. It is not close.
+#
+# Worse still, a pure alarm would have rung into a room where the bell is
+# already broken: post-receipts.yml has gone red every Thursday since the X
+# wire went inert, so "a red run in this repo" already means nothing. An alarm
+# that depends on someone reading GitHub Actions is not a fix; it is the same
+# bet that just lost.
+#
+# SO: TWO STAGES, off one daily pair of runs.
+#   T-72h  ring. Red, publishes nothing. A human still gets first call on the
+#          spotlight, which is the only part a machine picks badly.
+#   T-48h  publish anyway, main card chosen by rule. T-48h before Thursday's
+#          opener is Tuesday, and the default freeze is that Wednesday 23:59
+#          UTC — the brief's rhythm exactly, not a rushed one.
+#
+# THE RULE, and its one honest weakness: fewest games sharing a kickoff wins,
+# later window breaks the tie — the games the country watches alone. It picks
+# TNF, SNF, MNF and the standalone late windows on every week checked (2, 3, 4,
+# 5, including the London 13:30Z games). On Week 2 it takes JAX @ DEN and
+# LV @ LAC over WSH @ DAL, which a human would not. That is the price, it is
+# paid only on weeks nobody showed up for, and it costs nobody a point.
 #
 # THE BENIGN CASE IS GREEN, the doctrine post-receipts.yml states: offseason,
-# end of season, and a slate already published are all quiet. It goes red for
-# exactly one condition — the score source has next week's games and the house
-# has not called them — and it goes red ~72h before that week's first kickoff,
-# which lands on Tuesday, the day the brief says a slate publishes.
+# end of season, a week already published, and a successful backstop publish
+# are all quiet. It goes red for exactly one thing — a slate that is owed and
+# still has a human's window open to call it.
 name: slate-alarm
 on:
   schedule:
-    - cron: "0 12 * * *"
-  workflow_dispatch: {}
+    - cron: "0 0,12 * * *"
+  workflow_dispatch:
+    inputs:
+      publish_now:
+        description: "Skip the T-48h wait and publish the next week now (rule-picked Main Card)"
+        type: boolean
+        default: false
 
 jobs:
-  alarm:
+  watch:
     runs-on: ubuntu-latest
     steps:
-      - name: Is next week's slate called?
+      - name: Ring, then publish rather than go dark
+        env:
+          HOUSE_KEY: ${{ secrets.LEAGUE_HOUSE_KEY }}
+          FORCE: ${{ inputs.publish_now && 'true' || 'false' }}
         run: |
           set -uo pipefail
           base="https://xtgkasakmioyzpwiwejk.supabase.co/functions/v1/league"
@@ -52,8 +80,6 @@ jobs:
             exit 0
           fi
 
-          # TheSportsDB is the same wire ?publish reads (league 4391), so if it
-          # has no round yet there is genuinely nothing to call.
           slate=$(curl -s "https://www.thesportsdb.com/api/v1/json/123/eventsround.php?id=4391&r=${next}&s=${season}")
           games=$(printf '%s' "${slate}" | jq -r '(.events // []) | length')
           if [ "${games}" = "0" ]; then
@@ -61,24 +87,57 @@ jobs:
             exit 0
           fi
 
-          # strTimestamp is UTC without the suffix (index.ts pins this).
           first=$(printf '%s' "${slate}" | jq -r '[.events[].strTimestamp] | sort | .[0]')
-          due=$(( $(date -u -d "${first}Z" +%s) - 72*3600 ))
+          kick=$(date -u -d "${first}Z" +%s)
           now=$(date -u +%s)
-          echo "week ${next}: ${games} games, first kickoff ${first}Z, publish due $(date -u -d @${due} +%Y-%m-%dT%H:%MZ)"
+          ring=$((kick - 72*3600))
+          take=$((kick - 48*3600))
+          echo "week ${next}: ${games} games, first kickoff ${first}Z"
+          echo "  ring $(date -u -d @${ring} +%Y-%m-%dT%H:%MZ) · publish $(date -u -d @${take} +%Y-%m-%dT%H:%MZ)"
 
-          if [ "${now}" -lt "${due}" ]; then
+          if [ "${FORCE}" != "true" ] && [ "${now}" -lt "${ring}" ]; then
             echo "::notice::week ${next} is not due yet. Quiet."
             exit 0
           fi
 
-          echo "::error::WEEK ${next} IS NOT PUBLISHED and its first kickoff is ${first}Z. The site is still serving week ${week}; nobody can pick."
-          echo "Pick six game ids for the Main Card off the slate below, then call it:"
-          printf '%s' "${slate}" | jq -r '.events[] | "  \(.idEvent)  \(.strTimestamp)Z  \(.strAwayTeam) @ \(.strHomeTeam)"'
-          echo ""
-          echo "  curl -X POST \"${base}?publish\" -H \"x-house-key: \$LEAGUE_HOUSE_KEY\" \\"
-          echo "    -H 'Content-Type: application/json' \\"
-          echo "    -d '{\"season\":${season},\"week\":${next},\"main_card\":[\"…six ids…\"]}'"
-          echo ""
-          echo "freeze_at defaults to Wednesday 23:59 UTC. main_card is written ONCE and cannot be changed after."
+          if [ "${FORCE}" != "true" ] && [ "${now}" -lt "${take}" ]; then
+            echo "::error::WEEK ${next} IS NOT PUBLISHED. The site still serves week ${week}; nobody can pick."
+            echo "Call the Main Card yourself before $(date -u -d @${take} +%Y-%m-%dT%H:%MZ). After that this job publishes it by rule."
+            printf '%s' "${slate}" | jq -r '.events[] | "  \(.idEvent)  \(.strTimestamp)Z  \(.strAwayTeam) @ \(.strHomeTeam)"'
+            echo ""
+            echo "main_card is written ONCE and cannot be changed after. That is why you get first call."
+            exit 1
+          fi
+
+          main=$(printf '%s' "${slate}" | jq -c '
+            [.events[] | {id: .idEvent, ts: .strTimestamp}] as $ev
+            | ($ev | group_by(.ts) | map({ts: .[0].ts, n: length}) | INDEX(.ts)) as $size
+            | $ev | map(. + {n: $size[.ts].n})
+            | sort_by(.ts) | reverse | sort_by(.n)
+            | .[0:6] | map(.id)')
+          if [ "$(printf '%s' "${main}" | jq -r 'length')" != "6" ]; then
+            echo "::error::could not choose six Main Card games from ${games} — refusing to publish a malformed card."
+            exit 1
+          fi
+          echo "rule-picked Main Card: ${main}"
+          printf '%s' "${slate}" | jq -r --argjson m "${main}" '.events[] | select(.idEvent as $i | $m | index($i)) | "  \(.idEvent)  \(.strTimestamp)Z  \(.strAwayTeam) @ \(.strHomeTeam)"'
+
+          out=$(curl -s -w '\n%{http_code}' -X POST "${base}?publish" \
+            -H "x-house-key: ${HOUSE_KEY}" \
+            -H "Content-Type: application/json" \
+            -d "{\"season\":${season},\"week\":${next},\"main_card\":${main}}")
+          code=$(printf '%s' "${out}" | tail -n1)
+          json=$(printf '%s' "${out}" | sed '$d')
+          echo "HTTP ${code}"
+          echo "${json}"
+
+          if printf '%s' "${json}" | grep -q 'already published'; then
+            echo "::notice::week ${next} was published by hand while this ran. Nothing to do."
+            exit 0
+          fi
+          if [ "${code}" = "200" ] && printf '%s' "${json}" | grep -q '"ok":true'; then
+            echo "::warning::week ${next} was published BY RULE — nobody called the Main Card in the 24h window. The spotlight is now permanent; the slate is live and players can pick."
+            exit 0
+          fi
+          echo "::error::the backstop could not publish week ${next}. The league goes dark unless someone calls it by hand. Body above."
           exit 1

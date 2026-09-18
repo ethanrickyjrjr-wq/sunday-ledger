@@ -58,4 +58,11 @@ jobs:
             echo "::notice::week not settled yet — podium skipped, re-dispatch when it lands"
             exit 0
           fi
+          # Same inert-X-wire case post-receipts.yml documents: a credential
+          # that was never configured is a config state, not a failure, and a
+          # Tuesday that is red for it teaches everyone to ignore Tuesdays.
+          if echo "${out}" | grep -q 'no X client id'; then
+            echo "::notice::the X wire is not configured on this deployment — podium not posted"
+            exit 0
+          fi
           echo "::error::podium post failed"; exit 1

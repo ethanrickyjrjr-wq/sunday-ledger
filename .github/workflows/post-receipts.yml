@@ -53,6 +53,21 @@ jobs:
             exit 0
           fi
 
+          # The X wire is shipped but INERT until its console steps are done,
+          # and an unconfigured wire answers 502 "no X client id on this
+          # deployment" every single Thursday. This job's own doctrine, three
+          # comments up, is that a job which is red every week is a job nobody
+          # reads on the one week it matters - and that is exactly what
+          # happened: it failed 2026-09-10 and 2026-09-17 on this cause and no
+          # one looked, so the repo's whole red-means-something signal was
+          # spent. A missing credential is a config state, not a broken wire.
+          # Say so and stay green; the day the wire is configured this branch
+          # stops matching on its own.
+          if [ "${code}" = "502" ] && printf '%s' "${out}" | grep -q 'no X client id'; then
+            echo "::notice::The X wire is not configured on this deployment - nothing posted. Skipping."
+            exit 0
+          fi
+
           # Everything else must be a clean, acknowledged post.
           test "${code}" = "200"
           printf '%s' "${out}" | grep -q '"ok":true'
