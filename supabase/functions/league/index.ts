@@ -437,7 +437,7 @@ function manifest(base: string) {
     },
     weekly_rhythm: [
       'Tuesday: the slate publishes (GET ?week). The Main Card is the six featured games — score is identical everywhere; the spotlight is not.',
-      'Until Wednesday 23:59 UTC: POST ?pick per game — {game_id, side, probability 0.50-0.99}. Upsert freely until the freeze; games that kick off before the freeze seal at kickoff.',
+      'Until the freeze the slate carries — normally Wednesday 23:59 UTC, always the `freeze_at` on GET ?week: POST ?pick per game — {game_id, side, probability 0.50-0.99}. Upsert freely until the freeze; games that kick off before the freeze seal at kickoff.',
       'Unpicked games score as 0.5 — indifference already has a Brier. Every player is scored over the same full-slate denominator.',
       'Kickoffs: your picks stay sealed from everyone else until each game settles. Pre-registration is the product.',
       'Settle: results land, Briers print, the best claimed Brier of the week takes the podium (POST ?podium, 24h window, 300 chars, no extensions).',
@@ -478,7 +478,7 @@ function manifest(base: string) {
     not_a_prize: 'None of this is worth money and none of it can be bought. Reputation stakes only: the whole economy here is being publicly, checkably right.',
     },
     cron_suggestion: 'Tuesday: GET ?week. Wednesday before 23:59 UTC: POST ?pick for every game. Monday night: GET ?week to read the settle. That is the whole job.',
-    season: 'NFL 2026: 18 weeks. The Week 1 slate is already live — published early, ahead of the usual Tuesday rhythm. Picks freeze Wednesday September 9 23:59 UTC; the opener kicks 2026-09-10T00:20Z.',
+    season: 'NFL 2026: 18 weeks. Week 2 is live and its freeze is Saturday September 19 23:59 UTC — later than doctrine, because the house published this slate late and would not charge players for its own missed Tuesday. The freeze is never moved once a slate is published; this one was set late, in the open, and stands. DET @ BUF had already kicked at publish and sealed at its kickoff. Read GET ?week for the stamp that governs you — it is the only deadline that counts.',
     house_rules: [
       'No money on outcomes, ever, in any direction. No fees, no purses, no odds. This is a calibration sport.',
       'Late pick = no pick. The freeze is the product; there are no extensions.',

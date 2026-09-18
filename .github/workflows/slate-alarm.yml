@@ -1,0 +1,84 @@
+# The slate alarm — the week that never got published is the week nobody plays.
+#
+# WHY THIS FILE EXISTS. Week 1 was published by hand on 2026-08-31 and nothing
+# has ever published a week since. There were four crons — collect, settle,
+# settle-props, post-receipts — and every one of them was downstream of a slate
+# existing. So when Tuesday 2026-09-15 came and went with no Week 2, every job
+# stayed green: the collector swept threads for a week that wasn't there, the
+# settle correctly reported nothing owed, and the site served Week 1 for six
+# days while two players had nothing to pick. Found 2026-09-17, by the owner,
+# looking at the homepage. That is the failure this file makes impossible.
+#
+# WHY IT ALARMS INSTEAD OF PUBLISHING. `league_publish_week` writes `main_card`
+# once and there is no endpoint that can change it afterwards — the spotlight a
+# cron stamps is the spotlight forever. The obvious auto-rule (fewest games
+# sharing a kickoff = the national windows) picks JAX @ DEN and LV @ LAC over
+# WSH @ DAL on the very first week it was tried. A heuristic that cannot be
+# taken back is worse than a human being told to look, so this job is a
+# doorbell, not a door.
+#
+# THE BENIGN CASE IS GREEN, the doctrine post-receipts.yml states: offseason,
+# end of season, and a slate already published are all quiet. It goes red for
+# exactly one condition — the score source has next week's games and the house
+# has not called them — and it goes red ~72h before that week's first kickoff,
+# which lands on Tuesday, the day the brief says a slate publishes.
+name: slate-alarm
+on:
+  schedule:
+    - cron: "0 12 * * *"
+  workflow_dispatch: {}
+
+jobs:
+  alarm:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Is next week's slate called?
+        run: |
+          set -uo pipefail
+          base="https://xtgkasakmioyzpwiwejk.supabase.co/functions/v1/league"
+
+          cur=$(curl -s "${base}?week")
+          season=$(printf '%s' "${cur}" | jq -r '.season // empty')
+          week=$(printf '%s' "${cur}" | jq -r '.week // empty')
+          if [ -z "${season}" ] || [ -z "${week}" ]; then
+            echo "::error::GET ?week returned no published week at all. Body: ${cur}"
+            exit 1
+          fi
+          echo "published: season ${season} week ${week}"
+
+          next=$((week + 1))
+          if [ "${next}" -gt 18 ]; then
+            echo "::notice::week ${week} is the last of the regular season — nothing owed."
+            exit 0
+          fi
+
+          # TheSportsDB is the same wire ?publish reads (league 4391), so if it
+          # has no round yet there is genuinely nothing to call.
+          slate=$(curl -s "https://www.thesportsdb.com/api/v1/json/123/eventsround.php?id=4391&r=${next}&s=${season}")
+          games=$(printf '%s' "${slate}" | jq -r '(.events // []) | length')
+          if [ "${games}" = "0" ]; then
+            echo "::notice::the score source has no week ${next} yet — nothing to call."
+            exit 0
+          fi
+
+          # strTimestamp is UTC without the suffix (index.ts pins this).
+          first=$(printf '%s' "${slate}" | jq -r '[.events[].strTimestamp] | sort | .[0]')
+          due=$(( $(date -u -d "${first}Z" +%s) - 72*3600 ))
+          now=$(date -u +%s)
+          echo "week ${next}: ${games} games, first kickoff ${first}Z, publish due $(date -u -d @${due} +%Y-%m-%dT%H:%MZ)"
+
+          if [ "${now}" -lt "${due}" ]; then
+            echo "::notice::week ${next} is not due yet. Quiet."
+            exit 0
+          fi
+
+          echo "::error::WEEK ${next} IS NOT PUBLISHED and its first kickoff is ${first}Z. The site is still serving week ${week}; nobody can pick."
+          echo "Pick six game ids for the Main Card off the slate below, then call it:"
+          printf '%s' "${slate}" | jq -r '.events[] | "  \(.idEvent)  \(.strTimestamp)Z  \(.strAwayTeam) @ \(.strHomeTeam)"'
+          echo ""
+          echo "  curl -X POST \"${base}?publish\" -H \"x-house-key: \$LEAGUE_HOUSE_KEY\" \\"
+          echo "    -H 'Content-Type: application/json' \\"
+          echo "    -d '{\"season\":${season},\"week\":${next},\"main_card\":[\"…six ids…\"]}'"
+          echo ""
+          echo "freeze_at defaults to Wednesday 23:59 UTC. main_card is written ONCE and cannot be changed after."
+          exit 1
