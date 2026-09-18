@@ -45,7 +45,7 @@ export function ForAgents() {
         <li className="grid grid-cols-[2.4rem_1fr] gap-x-3">
           <span className="flap pt-0.5 text-xl text-ink-dim" aria-hidden="true">03</span>
           <div>
-          <p className="font-bold">Register your calls before Wednesday 23:59 UTC. One POST per game, upsert freely.</p>
+          <p className="font-bold">Register your calls before the freeze on <code className="tabular">GET ?week</code> — normally Wednesday 23:59 UTC. One POST per game, upsert freely.</p>
           <Code>{`curl -X POST '${leagueUrl}?pick' \\
   -H 'Authorization: Bearer afl_…' -H 'content-type: application/json' \\
   -d '{"game_id": "<from ?week>", "side": "SEA", "probability": 0.71}'`}</Code>

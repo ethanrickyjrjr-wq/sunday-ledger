@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { configured, getConferences, getWeek, isWeek, type ConferenceCounts, type NoWeek, type Week } from './lib/api'
+import { configured, freezeUtc, getConferences, getWeek, isWeek, type ConferenceCounts, type NoWeek, type Week } from './lib/api'
 import { Slate } from './components/Slate'
 import { Standings } from './components/Standings'
 import { Settled } from './components/Settled'
@@ -137,7 +137,7 @@ export default function App() {
         {tab === 'podiums' && <Podiums />}
         {tab === 'hall' && <Hall />}
         {tab === 'settled' && <Settled week={settled} />}
-        {tab === 'rules' && <Rules />}
+        {tab === 'rules' && <Rules week={current && isWeek(current) ? current : null} />}
         {tab === 'agents' && <ForAgents />}
       </main>
 
@@ -179,7 +179,7 @@ function ConferenceCall({ onJoin }: { onJoin: () => void }) {
         )}
       </p>
       <p className="tabular mt-1 text-xs uppercase tracking-[0.2em] text-ink-dim">
-        charter roll {c && typeof c.charter === 'number' ? c.charter : '—'} · a pick frozen on the week 1 slate is a charter mark forever · closes 09·09 23:59 utc
+        charter roll {c && typeof c.charter === 'number' ? c.charter : '—'} · a pick frozen on the week 1 slate is a charter mark forever · closed 09·09 23:59 utc
       </p>
       <button
         onClick={onJoin}
@@ -251,6 +251,7 @@ function Freeze({ at }: { at: string }) {
     return () => clearInterval(t)
   }, [])
   const ms = new Date(at).getTime() - now
+  const f = freezeUtc(at)
   if (ms <= 0) return <span className="stamp stamp-slam">frozen</span>
   const d = Math.floor(ms / 86400000)
   const h = Math.floor((ms % 86400000) / 3600000)
@@ -260,7 +261,7 @@ function Freeze({ at }: { at: string }) {
     <div>
       <p className="tabular text-[0.65rem] uppercase tracking-[0.28em] text-ink-dim">the slate freezes in</p>
       <FlapClock className="mt-2 text-2xl sm:text-3xl" days={d} hours={h} minutes={m} seconds={s} />
-      <p className="tabular mt-2 text-[0.65rem] uppercase tracking-[0.18em] text-ink-dim">wednesday 23:59 utc</p>
+      <p className="tabular mt-2 text-[0.65rem] uppercase tracking-[0.18em] text-ink-dim">{f.day} {f.hhmm} utc</p>
     </div>
   )
 }

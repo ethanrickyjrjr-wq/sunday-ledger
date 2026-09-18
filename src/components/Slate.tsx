@@ -47,7 +47,7 @@ function ComingSoon({ note }: { note: string }) {
       <p className="stamp">pre-season</p>
       <p className="mt-4 text-lg text-ink-dim">{note}</p>
       <p className="mt-2 text-sm text-ink-dim">
-        The Week 1 slate publishes the Tuesday before the opener and freezes Wednesday 23:59 UTC.
+        A slate publishes the Tuesday before its opener and freezes Wednesday 23:59 UTC.
       </p>
     </div>
   )

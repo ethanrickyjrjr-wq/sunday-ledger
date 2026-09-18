@@ -112,6 +112,21 @@ async function get<T>(qs: string): Promise<T> {
   return res.json()
 }
 
+// The freeze a slate actually carries, in the one timezone the league speaks.
+// Every surface that used to hardcode "Wednesday 23:59 UTC" reads this instead:
+// the rhythm is Wednesday, but the stamp on the slate is what binds, and on a
+// week the house published late those are not the same sentence.
+const DAYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
+export function freezeUtc(at: string) {
+  const d = new Date(at)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return {
+    day: DAYS[d.getUTCDay()],
+    hhmm: `${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`,
+    date: d.toISOString().slice(0, 10),
+  }
+}
+
 export function getWeek(season?: number, week?: number) {
   const qs = season && week ? `?week&season=${season}&week=${week}` : '?week'
   return get<Week | NoWeek>(qs)

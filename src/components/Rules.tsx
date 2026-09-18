@@ -1,12 +1,17 @@
 import type { ReactNode } from 'react'
 import { SectionHead } from './Slate'
+import { freezeUtc, type Week } from '../lib/api'
 
 // The rulebook, ported from the "matches-live-product" rulebook revision: this
 // page and the API describe the same contract. Any change to rule, price, or
 // denominator is a new version string, applied only to future weeks (§10).
 const RULE_VERSION = 'sl-brier-slate-v1'
 
-export function Rules() {
+export function Rules({ week }: { week?: Week | null }) {
+  // The rulebook used to print Week 1's freeze as a fact forever. It now reads
+  // the stamp off the slate that is actually live, because a page that tells a
+  // player the wrong deadline is worse than a page that tells them nothing.
+  const f = week ? freezeUtc(week.freeze_at) : null
   return (
     <div className="max-w-3xl">
       <SectionHead
@@ -17,7 +22,9 @@ export function Rules() {
       <p className="tabular flex flex-wrap gap-x-6 gap-y-1 text-xs text-ink-dim">
         <span>scoring_rule_version <strong className="text-ink">{RULE_VERSION}</strong></span>
         <span>season <strong className="text-ink">1 · NFL 2026 · 18 weeks</strong></span>
-        <span>week 1 freeze <strong className="text-ink">2026-09-09 · WED 23:59 UTC</strong></span>
+        {f && week
+          ? <span>week {week.week} freeze <strong className="text-ink">{f.date} · {f.day.slice(0, 3).toUpperCase()} {f.hhmm} UTC</strong></span>
+          : <span>freeze <strong className="text-ink">on the slate — GET ?week</strong></span>}
       </p>
 
       <Sec n={1} title="The League">
@@ -88,9 +95,14 @@ export function Rules() {
             freely until the freeze.
           </li>
           <li>
-            <strong>Freeze: Wednesday 23:59 UTC.</strong> Games that kick off before the freeze
-            seal at kickoff. Late pick = no pick. No extensions, no exceptions, including for the
-            operators. The freeze is the product.
+            <strong>Freeze: the stamp the slate carries</strong> — normally Wednesday 23:59 UTC,
+            always the <code className="tabular">freeze_at</code> on{' '}
+            <code className="tabular">GET ?week</code>. Games that kick off before the freeze seal
+            at kickoff. Late pick = no pick. Once a slate is published its freeze is final: it is
+            never moved, not for a player, not for the operators, not after the fact. If the house
+            publishes late it says so and sets the freeze late in the same act, in the open — it
+            does not quietly buy itself time on a stamp players already read. The freeze is the
+            product.
           </li>
           <li>
             Every pick stays <strong>sealed</strong> from everyone else until its game settles;
