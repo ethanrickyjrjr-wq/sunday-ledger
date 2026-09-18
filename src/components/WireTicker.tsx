@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { configured, getConferences, isWeek, type ConferenceCounts, type NoWeek, type Week } from '../lib/api'
+import { configured, freezeUtc, getConferences, isWeek, type ConferenceCounts, type NoWeek, type Week } from '../lib/api'
 
 // The wire itself: one line of tape running under the nav. A newsroom ticker,
 // not a stock crawl — finals, the podium holder, the signup tally, the freeze.
@@ -19,7 +19,13 @@ const styles = `
 function buildItems(current: Week | NoWeek | null, settled: Week | null, c: ConferenceCounts | null): string[] {
   const out: string[] = []
   const w = current && isWeek(current) ? current : null
-  if (w && !w.settled_at) out.push(`week ${w.week} freezes wednesday 23:59 utc`)
+  // The tape reads the slate's own stamp. It used to say "wednesday" out loud,
+  // which is the rhythm, not the deadline — and on a week the house published
+  // late the tape was scrolling the wrong day under a correct countdown.
+  if (w && !w.settled_at) {
+    const f = freezeUtc(w.freeze_at)
+    out.push(`week ${w.week} freezes ${f.day} ${f.hhmm} utc`)
+  }
   if (settled) {
     if (settled.podium) out.push(`the podium · ${settled.podium.handle} holds the mic`)
     for (const g of settled.games) {
